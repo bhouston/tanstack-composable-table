@@ -44,7 +44,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body> 
+      <body>
+        <QueryClientProvider client={queryClient}>
         <div className="p-2 flex gap-2 text-lg">
           <Link
             to="/"
@@ -60,6 +61,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         {children}
         <TanStackRouterDevtools position="bottom-right" />
         <Scripts />
+        </QueryClientProvider>
       </body>
     </html>
   )

@@ -3,12 +3,14 @@ import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
+  PaginationState,
   useReactTable,
 } from '@tanstack/react-table'
 
 import { useEffect, useState } from 'react';
 import { createServerFn, useServerFn } from '@tanstack/react-start';
 import z from 'zod/v4';
+import { useQuery } from '@tanstack/react-query';
 
 
 export type User = {
@@ -29,10 +31,10 @@ const generateUsers = (startIndex: number, count: number): User[] => {
 const getUsersServerFn = createServerFn({
   method: 'GET',
 })
-  .validator(z.object({ offset: z.number(), limit: z.number() }))
+  .validator(z.object({ pagination: z.object({ pageIndex: z.number(), pageSize: z.number() }) }))
   .handler(async ({ data: input }) => {
     console.info('getUsersServerFn', input)
-    const users = generateUsers(input.offset, input.limit)
+    const users = generateUsers(input.pagination.pageIndex, input.pagination.pageSize)
     console.info('getUsersServerFn', input, users)
     return users;
   })
@@ -57,25 +59,18 @@ const columns = [
 function Home() {
   const getUsers = useServerFn(getUsersServerFn);
   
-  const [offset, setOffset] = useState(0);
-  const [limit, setLimit] = useState(10);
-//  const { data, isLoading } = useQuery({
-//    queryKey: ['users',offset, limit],
-//    queryFn: async () => await getUsers({ data: { offset, limit } }),
-//  });
-  const [data, setData] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  })
 
-  useEffect(() => {
-    setIsLoading(true);
-    getUsers({ data: { offset, limit } }).then((data) => {
-      setData(data);
-      setIsLoading(false);
-    });
-  }, [offset, limit]);
+    const { data, isLoading } = useQuery({
+    queryKey: ['users',pagination.pageIndex, pagination.pageSize],
+    queryFn: async () => await getUsers({ data: { pagination } }),
+  });
 
   console.log('data', data, 'isLoading', isLoading)
-  console.log('offset', offset, 'limit', limit)
+  console.log('pagination', pagination)
 
   const table = useReactTable({
     data: data ?? [],
