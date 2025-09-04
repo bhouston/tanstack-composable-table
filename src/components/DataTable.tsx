@@ -11,7 +11,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 
 import { MdNavigateNext, MdNavigateBefore, MdLastPage, MdFirstPage } from 'react-icons/md';
-i
 
 // Generic types for the DataTable component
 export interface DataTableResult<T> {

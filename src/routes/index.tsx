@@ -3,16 +3,20 @@ import { createColumnHelper, PaginationState } from "@tanstack/react-table";
 
 import { createServerFn, useServerFn } from "@tanstack/react-start";
 import z from "zod/v4";
-import { FaTrash } from "react-icons/fa";
+import { FaCircle, FaTrash } from "react-icons/fa";
 import { DataTable, DataTableResult } from "../components/DataTable";
+import { useQueryClient } from "@tanstack/react-query";
 
 type User = {
   id: number;
   name: string;
   email: string;
+  version: number;
 };
 
 type GenerateUsersResult = DataTableResult<User>;
+
+const userIndexToVersion = new Map<number, number>();
 
 const generateUsers = (
   pageIndex: number,
@@ -23,6 +27,7 @@ const generateUsers = (
     id: startIndex + index + 1,
     name: `User ${startIndex + index + 1}`,
     email: `user${startIndex + index + 1}@example.com`,
+    version: userIndexToVersion.get(startIndex + index + 1) ?? 0,
   }));
   return {
     rows: array,
@@ -42,7 +47,28 @@ const getUsersServerFn = createServerFn({
     return generateUsers(input.pagination.pageIndex, input.pagination.pageSize);
   });
 
-const columnHelper = createColumnHelper<User>();
+  const updateUserVersionServerFn = createServerFn({
+    method: "POST",
+  })
+    .validator(z.object({ id: z.number() }))
+    .handler(async ({ data: input }) => {
+      userIndexToVersion.set(input.id, ( userIndexToVersion.get(input.id) ?? 0 ) + 1);
+    });
+  
+
+
+function Home() {
+  const getUsers = useServerFn(getUsersServerFn);
+  const updateUserVersion = useServerFn(updateUserVersionServerFn);
+  const queryClient = useQueryClient();
+  
+  const fetcher = async (
+    pagination: PaginationState
+  ): Promise<GenerateUsersResult> => {
+    return await getUsers({ data: { pagination } });
+  };
+
+  const columnHelper = createColumnHelper<User>();
 
 const columns = [
   columnHelper.accessor("name", {
@@ -51,6 +77,9 @@ const columns = [
   columnHelper.accessor("email", {
     header: "Email",
   }),
+  columnHelper.accessor("version", {
+    header: "Version",
+  }),
   columnHelper.display({
     id: "actions",
     header: "Actions",
@@ -58,21 +87,16 @@ const columns = [
       <button
         className="inline-flex items-center justify-center w-8 h-8 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 rounded-md transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1"
         title="Delete user"
+        onClick={() => {
+          updateUserVersion({ data: { id: info.row.original.id } });
+          queryClient.invalidateQueries({ queryKey: ["users"] });
+        }}
       >
-        <FaTrash className="w-4 h-4" />
+        <FaCircle className={`w-4 h-4 ${info.row.original.version === 0 ? 'text-green-500' : 'text-red-500'}`} />
       </button>
     ),
   }),
 ];
-
-function Home() {
-  const getUsers = useServerFn(getUsersServerFn);
-
-  const fetcher = async (
-    pagination: PaginationState
-  ): Promise<GenerateUsersResult> => {
-    return await getUsers({ data: { pagination } });
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
