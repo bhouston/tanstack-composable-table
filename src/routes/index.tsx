@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import { createServerFn, useServerFn } from '@tanstack/react-start';
 import z from 'zod/v4';
 import { useQuery } from '@tanstack/react-query';
+import { FaTrash } from 'react-icons/fa';
 
 type User = {
   id: number
@@ -61,8 +62,11 @@ const columns = [
     id: 'actions',
     header: 'Actions',
     cell: info => (
-      <button className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-150 dark:bg-red-500 dark:hover:bg-red-600">
-        Delete
+      <button 
+        className="inline-flex items-center justify-center w-8 h-8 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 rounded-md transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1"
+        title="Delete user"
+      >
+        <FaTrash className="w-4 h-4" />
       </button>
     )
   })
@@ -124,7 +128,7 @@ function Home() {
                       {headerGroup.headers.map(header => (
                         <th 
                           key={header.id}
-                          className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600"
+                          className="px-6 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600"
                         >
                           {header.isPlaceholder
                             ? null
@@ -148,7 +152,7 @@ function Home() {
                       {row.getVisibleCells().map(cell => (
                         <td 
                           key={cell.id}
-                          className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100"
+                          className="px-6 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100"
                         >
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </td>
@@ -162,7 +166,7 @@ function Home() {
                       {footerGroup.headers.map(header => (
                         <th 
                           key={header.id}
-                          className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-t border-gray-200 dark:border-gray-600"
+                          className="px-6 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-t border-gray-200 dark:border-gray-600"
                         >
                           {header.isPlaceholder
                             ? null
