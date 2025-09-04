@@ -44,15 +44,11 @@ const getUsersServerFn = createServerFn({
 const columnHelper = createColumnHelper<User>()
 
 const columns = [
-  columnHelper.accessor(row => row.name, {
-    id: 'name',
+  columnHelper.accessor('name', {
     header: 'Name',
-    cell: info => info.getValue()
   }),
-  columnHelper.accessor(row => row.email, {
-    id: 'email',
-    header: 'Email',
-    cell: info => info.getValue()
+  columnHelper.accessor('email', {
+    header: 'Email'
   }),
   columnHelper.display({
     id: 'actions',
