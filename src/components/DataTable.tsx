@@ -14,6 +14,9 @@ import {
   FaAngleRight, 
   FaAngleDoubleRight 
 } from 'react-icons/fa';
+import { GoMoveToEnd, GoMoveToStart } from 'react-icons/go';
+import { MdNavigateNext, MdNavigateBefore, MdLastPage, MdFirstPage } from 'react-icons/md';
+import { BiFirstPage, BiLastPage } from 'react-icons/bi';
 
 // Generic types for the DataTable component
 export interface DataTableResult<T> {
@@ -191,60 +194,64 @@ export function DataTable<T>({
           {!isLoading && data && data.rows.length > 0 && (
             <div className="px-6 py-4">
               <div className="flex items-center justify-between">
-                {/* Left: Page Input */}
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Page</span>
-                  <input
-                    type="text"
-                    value={pageInput}
-                    onChange={(e) => handlePageInputChange(e.target.value)}
-                    onKeyPress={handlePageInputKeyPress}
-                    onBlur={handlePageInputSubmit}
-                    className={`w-16 px-2 py-1 text-sm text-center border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-150 ${
-                      isPageInputValid
-                        ? 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
-                        : 'border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
-                    }`}
-                    placeholder="1"
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    of {table.getPageCount()}
-                  </span>
-                </div>
+                {/* Left: Empty space for balance */}
+                <div></div>
                 
-                {/* Center: Navigation Buttons */}
-                <div className="flex items-center space-x-1">
+                {/* Center: Navigation Buttons with Page Input in Middle */}
+                <div className="flex items-center space-x-2">
                   <button
                     onClick={() => table.firstPage()}
                     disabled={!table.getCanPreviousPage()}
-                    className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-l-md hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-gray-500 dark:disabled:hover:bg-gray-800 dark:disabled:hover:text-gray-400 transition-colors duration-150"
+                    className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-gray-500 dark:disabled:hover:bg-gray-800 dark:disabled:hover:text-gray-400 transition-colors duration-150"
                     title="First page"
                   >
-                    {'<<'}
+                    <MdFirstPage className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => table.previousPage()}
                     disabled={!table.getCanPreviousPage()}
-                    className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border-t border-b border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-gray-500 dark:disabled:hover:bg-gray-800 dark:disabled:hover:text-gray-400 transition-colors duration-150"
+                    className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-gray-500 dark:disabled:hover:bg-gray-800 dark:disabled:hover:text-gray-400 transition-colors duration-150"
                     title="Previous page"
                   >
-                    {'<'}
+                    <MdNavigateBefore className="w-4 h-4" />
                   </button>
+                  
+                  {/* Page Input in the middle */}
+                  <div className="flex items-center space-x-2 px-4 py-2">
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Page</span>
+                    <input
+                      type="text"
+                      value={pageInput}
+                      onChange={(e) => handlePageInputChange(e.target.value)}
+                      onKeyPress={handlePageInputKeyPress}
+                      onBlur={handlePageInputSubmit}
+                      className={`w-16 px-2 py-1 text-sm text-center border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-150 ${
+                        isPageInputValid
+                          ? 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                          : 'border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
+                      }`}
+                      placeholder="1"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      of {table.getPageCount()}
+                    </span>
+                  </div>
+                  
                   <button
                     onClick={() => table.nextPage()}
                     disabled={!table.getCanNextPage()}
-                    className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border-t border-b border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-gray-500 dark:disabled:hover:bg-gray-800 dark:disabled:hover:text-gray-400 transition-colors duration-150"
+                    className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-gray-500 dark:disabled:hover:bg-gray-800 dark:disabled:hover:text-gray-400 transition-colors duration-150"
                     title="Next page"
                   >
-                    {'>'}
+                    <MdNavigateNext className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => table.lastPage()}
                     disabled={!table.getCanNextPage()}
-                    className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-r-md hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-gray-500 dark:disabled:hover:bg-gray-800 dark:disabled:hover:text-gray-400 transition-colors duration-150"
+                    className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-gray-500 dark:disabled:hover:bg-gray-800 dark:disabled:hover:text-gray-400 transition-colors duration-150"
                     title="Last page"
                   >
-                    {'>>'}
+                    <MdLastPage className="w-4 h-4" />
                   </button>
                 </div>
                 
