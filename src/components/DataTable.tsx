@@ -159,25 +159,32 @@ export function DataTable<T>({
                     </tr>
                   ))}
                 </tbody>
-                <tfoot className="bg-gray-50 dark:bg-gray-700">
-                  {table.getFooterGroups().map(footerGroup => (
-                    <tr key={footerGroup.id}>
-                      {footerGroup.headers.map(header => (
-                        <th 
-                          key={header.id}
-                          className="px-6 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-t border-gray-200 dark:border-gray-600"
-                        >
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.footer,
-                                header.getContext()
-                              )}
-                        </th>
-                      ))}
-                    </tr>
-                  ))}
-                </tfoot>
+                {/* Only render footer if there's actual footer content */}
+                {table.getFooterGroups().some(footerGroup => 
+                  footerGroup.headers.some(header => 
+                    header.column.columnDef.footer && !header.isPlaceholder
+                  )
+                ) && (
+                  <tfoot className="bg-gray-50 dark:bg-gray-700">
+                    {table.getFooterGroups().map(footerGroup => (
+                      <tr key={footerGroup.id}>
+                        {footerGroup.headers.map(header => (
+                          <th 
+                            key={header.id}
+                            className="px-6 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-t border-gray-200 dark:border-gray-600"
+                          >
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(
+                                  header.column.columnDef.footer,
+                                  header.getContext()
+                                )}
+                          </th>
+                        ))}
+                      </tr>
+                    ))}
+                  </tfoot>
+                )}
               </table>
             )}
           </div>
