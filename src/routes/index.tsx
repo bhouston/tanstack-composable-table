@@ -43,10 +43,7 @@ const getUsersServerFn = createServerFn({
 })
   .validator(z.object({ pagination: z.object({ pageIndex: z.number(), pageSize: z.number() }) }))
   .handler(async ({ data: input }) => {
-    console.info('getUsersServerFn', input)
-    const users = generateUsers(input.pagination.pageIndex, input.pagination.pageSize)
-    console.info('getUsersServerFn', input, users)
-    return users;
+    return generateUsers(input.pagination.pageIndex, input.pagination.pageSize)
   })
   
 const columnHelper = createColumnHelper<User>()
@@ -80,6 +77,47 @@ function Home() {
     pageIndex: 0,
     pageSize: 10,
   })
+
+  const [pageInput, setPageInput] = useState<string>('1')
+  const [isPageInputValid, setIsPageInputValid] = useState<boolean>(true)
+
+  // Update page input when pagination changes
+  useEffect(() => {
+    setPageInput((pagination.pageIndex + 1).toString())
+  }, [pagination.pageIndex])
+
+  const handlePageInputChange = (value: string) => {
+    // Only allow numbers
+    const numericValue = value.replace(/[^0-9]/g, '')
+    setPageInput(numericValue)
+    
+    if (numericValue === '') {
+      setIsPageInputValid(true) // Allow empty input while typing
+      return
+    }
+    
+    const pageNumber = parseInt(numericValue, 10)
+    const maxPages = data ? Math.ceil(data.rowCount / pagination.pageSize) : 1
+    
+    setIsPageInputValid(pageNumber >= 1 && pageNumber <= maxPages)
+  }
+
+  const handlePageInputSubmit = () => {
+    if (pageInput === '' || !isPageInputValid) return
+    
+    const pageNumber = parseInt(pageInput, 10)
+    const targetPageIndex = pageNumber - 1
+    
+    if (targetPageIndex !== pagination.pageIndex) {
+      setPagination(prev => ({ ...prev, pageIndex: targetPageIndex }))
+    }
+  }
+
+  const handlePageInputKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handlePageInputSubmit()
+    }
+  }
 
     const { data, isLoading } = useQuery({
     queryKey: ['users',pagination.pageIndex, pagination.pageSize],
@@ -266,9 +304,25 @@ function Home() {
                     </button>
                   </div>
                   
-                  {/* Current Page Info */}
-                  <div className="text-sm text-gray-700 dark:text-gray-300">
-                    Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+                  {/* Current Page Input */}
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Page</span>
+                    <input
+                      type="text"
+                      value={pageInput}
+                      onChange={(e) => handlePageInputChange(e.target.value)}
+                      onKeyPress={handlePageInputKeyPress}
+                      onBlur={handlePageInputSubmit}
+                      className={`w-16 px-2 py-1 text-sm text-center border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-150 ${
+                        isPageInputValid
+                          ? 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                          : 'border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
+                      }`}
+                      placeholder="1"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      of {table.getPageCount()}
+                    </span>
                   </div>
                 </div>
               </div>
