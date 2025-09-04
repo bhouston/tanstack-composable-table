@@ -8,15 +8,10 @@ import {
   ColumnDef,
 } from '@tanstack/react-table';
 import { useQuery } from '@tanstack/react-query';
-import { 
-  FaAngleDoubleLeft, 
-  FaAngleLeft, 
-  FaAngleRight, 
-  FaAngleDoubleRight 
-} from 'react-icons/fa';
-import { GoMoveToEnd, GoMoveToStart } from 'react-icons/go';
+import { useNavigate, useSearch } from '@tanstack/react-router';
+
 import { MdNavigateNext, MdNavigateBefore, MdLastPage, MdFirstPage } from 'react-icons/md';
-import { BiFirstPage, BiLastPage } from 'react-icons/bi';
+i
 
 // Generic types for the DataTable component
 export interface DataTableResult<T> {
@@ -36,6 +31,7 @@ export interface DataTableProps<T> {
   emptyMessage?: string;
   pageSizeOptions?: number[];
   initialPageSize?: number;
+  defaultPageSize?: number; // Default page size for clean URLs
   className?: string;
 }
 
@@ -46,20 +42,90 @@ export function DataTable<T>({
   emptyMessage = 'No data found',
   pageSizeOptions = [10, 20, 30, 40, 50],
   initialPageSize = 10,
+  defaultPageSize = 10,
   className = '',
 }: DataTableProps<T>) {
-  const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: initialPageSize,
-  });
+  const navigate = useNavigate();
+  const search = useSearch({ strict: false }) as { pageIndex?: number; pageSize?: number };
+
+  // Helper function to get pagination state from URL params with validation
+  const getPaginationFromURL = (): PaginationState => {
+    // Use browser's URL API for consistency
+    const url = new URL(window.location.href);
+    const urlPageIndex = url.searchParams.get('pageIndex');
+    const urlPageSize = url.searchParams.get('pageSize');
+
+    // Validate and parse pageIndex
+    let pageIndex = 0;
+    if (urlPageIndex !== null) {
+      const parsed = parseInt(urlPageIndex, 10);
+      if (!isNaN(parsed) && parsed >= 0) {
+        pageIndex = parsed;
+      }
+    }
+
+    // Validate and parse pageSize
+    let pageSize = defaultPageSize;
+    if (urlPageSize !== null) {
+      const parsed = parseInt(urlPageSize, 10);
+      if (!isNaN(parsed) && parsed > 0 && pageSizeOptions.includes(parsed)) {
+        pageSize = parsed;
+      }
+    }
+
+    return { pageIndex, pageSize };
+  };
+
+  // Initialize pagination state from URL params
+  const [pagination, setPagination] = useState<PaginationState>(() => getPaginationFromURL());
 
   const [pageInput, setPageInput] = useState<string>('1');
   const [isPageInputValid, setIsPageInputValid] = useState<boolean>(true);
+
+  // Sync pagination state with URL changes
+  useEffect(() => {
+    const handleURLChange = () => {
+      const urlPagination = getPaginationFromURL();
+      setPagination(urlPagination);
+    };
+
+    // Listen for URL changes (including browser back/forward)
+    window.addEventListener('popstate', handleURLChange);
+    
+    // Also check on mount in case URL changed while component was unmounted
+    handleURLChange();
+
+    return () => {
+      window.removeEventListener('popstate', handleURLChange);
+    };
+  }, []);
 
   // Update page input when pagination changes
   useEffect(() => {
     setPageInput((pagination.pageIndex + 1).toString());
   }, [pagination.pageIndex]);
+
+  // Helper function to update URL with new pagination state
+  const updateURLWithPagination = (newPagination: PaginationState) => {
+    // Start with the current URL to preserve all existing parameters
+    const url = new URL(window.location.href);
+    
+    // Remove our pagination parameters first
+    url.searchParams.delete('pageIndex');
+    url.searchParams.delete('pageSize');
+    
+    // Then, only add them back if they're not default values
+    if (newPagination.pageIndex !== 0) {
+      url.searchParams.set('pageIndex', newPagination.pageIndex.toString());
+    }
+    
+    if (newPagination.pageSize !== defaultPageSize) {
+      url.searchParams.set('pageSize', newPagination.pageSize.toString());
+    }
+    
+    // Use replaceState to avoid cluttering browser history
+    window.history.replaceState({}, '', url.toString());
+  };
 
   const handlePageInputChange = (value: string) => {
     // Only allow numbers
@@ -84,7 +150,9 @@ export function DataTable<T>({
     const targetPageIndex = pageNumber - 1;
     
     if (targetPageIndex !== pagination.pageIndex) {
-      setPagination(prev => ({ ...prev, pageIndex: targetPageIndex }));
+      const newPagination = { ...pagination, pageIndex: targetPageIndex };
+      setPagination(newPagination);
+      updateURLWithPagination(newPagination);
     }
   };
 
@@ -99,12 +167,22 @@ export function DataTable<T>({
     queryFn: async () => await fetcher(pagination),
   });
 
+  // Custom pagination change handler that updates both state and URL
+  const handlePaginationChange = (updater: any) => {
+    const newPagination = typeof updater === 'function' 
+      ? updater(pagination) 
+      : updater;
+    
+    setPagination(newPagination);
+    updateURLWithPagination(newPagination);
+  };
+
   const table = useReactTable({
     data: data?.rows ?? [],
     columns,
     getCoreRowModel: getCoreRowModel(),
     rowCount: data?.rowCount,
-    onPaginationChange: setPagination,
+    onPaginationChange: handlePaginationChange,
     state: {
       pagination,
     },
@@ -279,7 +357,10 @@ export function DataTable<T>({
                     id="pageSize"
                     value={table.getState().pagination.pageSize}
                     onChange={e => {
-                      table.setPageSize(Number(e.target.value));
+                      const newPageSize = Number(e.target.value);
+                      const newPagination = { ...pagination, pageSize: newPageSize, pageIndex: 0 }; // Reset to first page when changing page size
+                      setPagination(newPagination);
+                      updateURLWithPagination(newPagination);
                     }}
                     className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-150"
                   >

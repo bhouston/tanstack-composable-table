@@ -91,6 +91,7 @@ function Home() {
             fetcher={fetcher}
             columns={columns}
             emptyMessage="No users found"
+            defaultPageSize={10}
           />
         </div>
       </div>
@@ -100,4 +101,8 @@ function Home() {
 
 export const Route = createFileRoute("/")({
   component: Home,
+  validateSearch: z.object({
+    pageIndex: z.number().optional().default(0),
+    pageSize: z.number().optional().default(10),
+  }),
 });
