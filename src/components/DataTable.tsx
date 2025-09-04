@@ -11,6 +11,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearch, Link, getRouteApi } from '@tanstack/react-router';
 
 import { MdNavigateNext, MdNavigateBefore, MdLastPage, MdFirstPage } from 'react-icons/md';
+import { PaginationButton } from './PaginationButton';
+import { LoadingSpinner } from './LoadingSpinner';
 
 // Generic types for the DataTable component
 export interface DataTableResult<T> {
@@ -33,7 +35,6 @@ export interface DataTableProps<T, TSearch = { pageIndex?: number; pageSize?: nu
   // Optional props
   emptyMessage?: string;
   pageSizeOptions?: number[];
-  initialPageSize?: number;
   defaultPageSize?: number; // Default page size for clean URLs
   className?: string;
 }
@@ -46,10 +47,17 @@ export function DataTable<T>({
   onSearchChange,
   emptyMessage = 'No data found',
   pageSizeOptions = [10, 20, 30, 40, 50],
-  initialPageSize = 10,
   defaultPageSize = 10,
   className = '',
 }: DataTableProps<T>) {
+  // Validate pageSizeOptions
+  if (!pageSizeOptions || pageSizeOptions.length === 0) {
+    throw new Error('pageSizeOptions must be a non-empty array');
+  }
+  
+  if (pageSizeOptions.some(size => size <= 0)) {
+    throw new Error('All pageSizeOptions values must be greater than 0');
+  }
   // Get pagination state from search params
   const pagination: PaginationState = {
     pageIndex: searchParams.pageIndex ?? 0,
@@ -138,10 +146,7 @@ export function DataTable<T>({
     <div className={className}>
       <div className="overflow-x-auto">
             {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <span className="ml-3 text-gray-600 dark:text-gray-400">Loading...</span>
-              </div>
+              <LoadingSpinner />
             ) : (
               <table className="w-full">
                 <thead className="bg-gray-50 dark:bg-gray-700">
@@ -229,26 +234,20 @@ export function DataTable<T>({
                 
                 {/* Center: Navigation Buttons with Page Input in Middle */}
                 <div className="flex items-center space-x-2">
-                  <button
+                  <PaginationButton
                     onClick={() => updateSearchParams({ pageIndex: 0, pageSize: pagination.pageSize })}
                     disabled={!table.getCanPreviousPage()}
-                    className={`inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-gray-500 dark:disabled:hover:bg-gray-800 dark:disabled:hover:text-gray-400 transition-colors duration-150 ${
-                      !table.getCanPreviousPage() ? 'invisible' : ''
-                    }`}
                     title="First page"
                   >
                     <MdFirstPage className="w-4 h-4" />
-                  </button>
-                  <button    
+                  </PaginationButton>
+                  <PaginationButton
                     onClick={() => updateSearchParams({ pageIndex: pagination.pageIndex - 1, pageSize: pagination.pageSize })}
                     disabled={!table.getCanPreviousPage()}
-                    className={`inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-gray-500 dark:disabled:hover:bg-gray-800 dark:disabled:hover:text-gray-400 transition-colors duration-150 ${
-                      !table.getCanPreviousPage() ? 'invisible' : ''
-                    }`}
                     title="Previous page"
                   >
                     <MdNavigateBefore className="w-4 h-4" />
-                  </button>
+                  </PaginationButton>
                   {/* Page Input in the middle */}
                   <div className="flex items-center space-x-2 px-4 py-2">
                     <span className="text-sm text-gray-700 dark:text-gray-300">Page</span>
@@ -270,26 +269,20 @@ export function DataTable<T>({
                     </span>
                   </div>
                   
-                  <button
+                  <PaginationButton
                     onClick={() => updateSearchParams({ pageIndex: pagination.pageIndex + 1, pageSize: pagination.pageSize })}
                     disabled={!table.getCanNextPage()}
-                    className={`inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-gray-500 dark:disabled:hover:bg-gray-800 dark:disabled:hover:text-gray-400 transition-colors duration-150 ${
-                      !table.getCanNextPage() ? 'invisible' : ''
-                    }`}
                     title="Next page"
                   >
                     <MdNavigateNext className="w-4 h-4" />
-                  </button>
-                  <button
+                  </PaginationButton>
+                  <PaginationButton
                     onClick={() => updateSearchParams({ pageIndex: table.getPageCount() - 1, pageSize: pagination.pageSize })}
                     disabled={!table.getCanNextPage()}
-                    className={`inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-gray-500 dark:disabled:hover:bg-gray-800 dark:disabled:hover:text-gray-400 transition-colors duration-150 ${
-                      !table.getCanNextPage() ? 'invisible' : ''
-                    }`}
                     title="Last page"
                   >
                     <MdLastPage className="w-4 h-4" />
-                  </button>
+                  </PaginationButton>
                 </div>
                 
                 {/* Right: Page Size Selector */}
