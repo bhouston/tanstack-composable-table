@@ -6,6 +6,7 @@ import z from "zod/v4";
 import { FaCircle, FaTrash } from "react-icons/fa";
 import { DataTable, DataTableResult } from "../components/DataTable";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 
 type User = {
   id: number;
@@ -61,11 +62,19 @@ function Home() {
   const getUsers = useServerFn(getUsersServerFn);
   const updateUserVersion = useServerFn(updateUserVersionServerFn);
   const queryClient = useQueryClient();
+  const navigate = Route.useNavigate();
+  const search = Route.useSearch();
   
   const fetcher = async (
     pagination: PaginationState
   ): Promise<GenerateUsersResult> => {
     return await getUsers({ data: { pagination } });
+  };
+
+  const handleSearchChange = (newSearch: any) => {
+    navigate({
+      search: (prev) => ({ ...prev, ...newSearch }),
+    });
   };
 
   const columnHelper = createColumnHelper<User>();
@@ -110,10 +119,12 @@ const columns = [
               Manage your users with this interactive table
             </p>
           </div>
-          <DataTable<User>
+          <DataTable<User, typeof search>
             queryKey={["users"]}
             fetcher={fetcher}
             columns={columns}
+            searchParams={search}
+            onSearchChange={handleSearchChange}
             emptyMessage="No users found"
             defaultPageSize={10}
           />
@@ -126,7 +137,7 @@ const columns = [
 export const Route = createFileRoute("/")({
   component: Home,
   validateSearch: z.object({
-    pageIndex: z.number().optional().default(0),
-    pageSize: z.number().optional().default(10),
+    pageIndex: z.number().catch(0),
+    pageSize: z.number().catch(10),
   }),
 });
