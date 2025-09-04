@@ -12,22 +12,29 @@ import { createServerFn, useServerFn } from '@tanstack/react-start';
 import z from 'zod/v4';
 import { useQuery } from '@tanstack/react-query';
 
-
-export type User = {
+type User = {
   id: number
   name: string
   email: string
 }
 
+type GenerateUsersResult = {
+  rows: User[]
+  rowCount: number
+}
 
-const generateUsers = (pageIndex: number, pageSize: number): User[] => {
+const generateUsers = (pageIndex: number, pageSize: number): GenerateUsersResult => {
 
   const startIndex = pageIndex * pageSize;
-  return Array.from({ length: pageSize }, (_, index) => ({
+  const array: User[] = Array.from({ length: pageSize }, (_, index) => ({
     id: startIndex + index + 1,
     name: `User ${startIndex + index + 1}`,
     email: `user${startIndex + index + 1}@example.com`,
-  }))
+  }));
+  return {
+    rows: array,
+    rowCount: 1000
+  };
 }
 
 const getUsersServerFn = createServerFn({
@@ -79,9 +86,14 @@ function Home() {
   console.log('pagination', pagination)
 
   const table = useReactTable({
-    data: data ?? [],
+    data: data?.rows ?? [],
     columns,
     getCoreRowModel: getCoreRowModel(),
+    rowCount: data?.rowCount,
+    onPaginationChange: setPagination,
+    state: {
+      pagination,
+    },
   })
 
   return (
