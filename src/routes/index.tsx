@@ -71,9 +71,16 @@ function Home() {
     return await getUsers({ data: { pagination } });
   };
 
-  const handleSearchChange = (newSearch: any) => {
+  const handleSearchChange = (newPagination: Partial<PaginationState>) => {
+    console.log("newPagination", newPagination);
+  
     navigate({
-      search: (prev) => ({ ...prev, ...newSearch }),
+      search: (prev) =>{
+        const newSearch = { ...prev };
+        delete newSearch.pageIndex;
+        delete newSearch.pageSize;
+        return { ...newSearch, ...newPagination };
+      },
     });
   };
 
@@ -119,7 +126,7 @@ const columns = [
               Manage your users with this interactive table
             </p>
           </div>
-          <DataTable<User, typeof search>
+          <DataTable<User>
             queryKey={["users"]}
             fetcher={fetcher}
             columns={columns}
@@ -137,7 +144,7 @@ const columns = [
 export const Route = createFileRoute("/")({
   component: Home,
   validateSearch: z.object({
-    pageIndex: z.number().catch(0),
-    pageSize: z.number().catch(10),
+    pageIndex: z.number().optional().catch(0),
+    pageSize: z.number().optional().catch(10),
   }),
 });

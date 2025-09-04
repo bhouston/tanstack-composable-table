@@ -27,8 +27,8 @@ export interface DataTableProps<T, TSearch = { pageIndex?: number; pageSize?: nu
   columns: ColumnDef<T, any>[];
   
   // Search params configuration
-  searchParams: TSearch;
-  onSearchChange: (search: any) => void;
+  searchParams: Partial<PaginationState>;
+  onSearchChange: (search: Partial<PaginationState>) => void;
   
   // Optional props
   emptyMessage?: string;
@@ -38,7 +38,7 @@ export interface DataTableProps<T, TSearch = { pageIndex?: number; pageSize?: nu
   className?: string;
 }
 
-export function DataTable<T, TSearch = { pageIndex?: number; pageSize?: number }>({
+export function DataTable<T>({
   queryKey,
   fetcher,
   columns,
@@ -49,11 +49,11 @@ export function DataTable<T, TSearch = { pageIndex?: number; pageSize?: number }
   initialPageSize = 10,
   defaultPageSize = 10,
   className = '',
-}: DataTableProps<T, TSearch>) {
+}: DataTableProps<T>) {
   // Get pagination state from search params
   const pagination: PaginationState = {
-    pageIndex: (searchParams as any).pageIndex ?? 0,
-    pageSize: (searchParams as any).pageSize ?? defaultPageSize,
+    pageIndex: searchParams.pageIndex ?? 0,
+    pageSize: searchParams.pageSize ?? defaultPageSize,
   };
 
   const [pageInput, setPageInput] = useState<string>((pagination.pageIndex + 1).toString());
@@ -63,6 +63,18 @@ export function DataTable<T, TSearch = { pageIndex?: number; pageSize?: number }
   useEffect(() => {
     setPageInput((pagination.pageIndex + 1).toString());
   }, [pagination.pageIndex]);
+
+  const updateSearchParams = (newPagination: PaginationState) => {
+    newPagination.pageSize = pageSizeOptions.indexOf(newPagination.pageSize) !== -1 ? newPagination.pageSize : pageSizeOptions[0];
+    newPagination.pageIndex = Math.min( Math.max(0, newPagination.pageIndex), ( data?.rowCount || 0 ) * newPagination.pageSize - 1  );
+  
+    if( newPagination.pageIndex === pagination.pageIndex && newPagination.pageSize === pagination.pageSize ) return;
+    
+    onSearchChange({
+      pageIndex: newPagination.pageIndex === 0 ? undefined : newPagination.pageIndex,
+      pageSize: newPagination.pageSize === defaultPageSize ? undefined : newPagination.pageSize,
+    });
+  };
 
   const handlePageInputChange = (value: string) => {
     // Only allow numbers
@@ -85,13 +97,8 @@ export function DataTable<T, TSearch = { pageIndex?: number; pageSize?: number }
     
     const pageNumber = parseInt(pageInput, 10);
     const targetPageIndex = pageNumber - 1;
-    
-    if (targetPageIndex !== pagination.pageIndex) {
-      onSearchChange({
-        pageIndex: targetPageIndex,
-        pageSize: pagination.pageSize,
-      });
-    }
+
+    updateSearchParams({ pageIndex: targetPageIndex, pageSize: pagination.pageSize });
   };
 
   const handlePageInputKeyPress = (e: React.KeyboardEvent) => {
@@ -111,16 +118,9 @@ export function DataTable<T, TSearch = { pageIndex?: number; pageSize?: number }
       ? updater(pagination) 
       : updater;
     
-    onSearchChange({
-      pageIndex: newPagination.pageIndex,
-      pageSize: newPagination.pageSize,
-    });
+    updateSearchParams(newPagination);  
   };
 
-  // Helper function to create search params for navigation
-  const createSearchParams = (updates: any) => {
-    return { ...searchParams, ...updates };
-  };
 
   const table = useReactTable({
     data: data?.rows ?? [],
@@ -229,9 +229,8 @@ export function DataTable<T, TSearch = { pageIndex?: number; pageSize?: number }
                 
                 {/* Center: Navigation Buttons with Page Input in Middle */}
                 <div className="flex items-center space-x-2">
-                  <Link
-                    to="."
-                    search={createSearchParams({ pageIndex: 0, pageSize: pagination.pageSize })}
+                  <button
+                    onClick={() => updateSearchParams({ pageIndex: 0, pageSize: pagination.pageSize })}
                     disabled={!table.getCanPreviousPage()}
                     className={`inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-gray-500 dark:disabled:hover:bg-gray-800 dark:disabled:hover:text-gray-400 transition-colors duration-150 ${
                       !table.getCanPreviousPage() ? 'invisible' : ''
@@ -239,13 +238,9 @@ export function DataTable<T, TSearch = { pageIndex?: number; pageSize?: number }
                     title="First page"
                   >
                     <MdFirstPage className="w-4 h-4" />
-                  </Link>
-                  <Link
-                    to="."
-                    search={createSearchParams({ 
-                      pageIndex: Math.max(0, pagination.pageIndex - 1),
-                      pageSize: pagination.pageSize,
-                    })}
+                  </button>
+                  <button    
+                    onClick={() => updateSearchParams({ pageIndex: pagination.pageIndex - 1, pageSize: pagination.pageSize })}
                     disabled={!table.getCanPreviousPage()}
                     className={`inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-gray-500 dark:disabled:hover:bg-gray-800 dark:disabled:hover:text-gray-400 transition-colors duration-150 ${
                       !table.getCanPreviousPage() ? 'invisible' : ''
@@ -253,8 +248,7 @@ export function DataTable<T, TSearch = { pageIndex?: number; pageSize?: number }
                     title="Previous page"
                   >
                     <MdNavigateBefore className="w-4 h-4" />
-                  </Link>
-                  
+                  </button>
                   {/* Page Input in the middle */}
                   <div className="flex items-center space-x-2 px-4 py-2">
                     <span className="text-sm text-gray-700 dark:text-gray-300">Page</span>
@@ -276,12 +270,8 @@ export function DataTable<T, TSearch = { pageIndex?: number; pageSize?: number }
                     </span>
                   </div>
                   
-                  <Link
-                    to="."
-                    search={createSearchParams({ 
-                      pageIndex: pagination.pageIndex + 1,
-                      pageSize: pagination.pageSize,
-                    })}
+                  <button
+                    onClick={() => updateSearchParams({ pageIndex: pagination.pageIndex + 1, pageSize: pagination.pageSize })}
                     disabled={!table.getCanNextPage()}
                     className={`inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-gray-500 dark:disabled:hover:bg-gray-800 dark:disabled:hover:text-gray-400 transition-colors duration-150 ${
                       !table.getCanNextPage() ? 'invisible' : ''
@@ -289,10 +279,9 @@ export function DataTable<T, TSearch = { pageIndex?: number; pageSize?: number }
                     title="Next page"
                   >
                     <MdNavigateNext className="w-4 h-4" />
-                  </Link>
-                  <Link
-                    to="."
-                    search={createSearchParams({ pageIndex: table.getPageCount() - 1, pageSize: pagination.pageSize })}
+                  </button>
+                  <button
+                    onClick={() => updateSearchParams({ pageIndex: table.getPageCount() - 1, pageSize: pagination.pageSize })}
                     disabled={!table.getCanNextPage()}
                     className={`inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-gray-500 dark:disabled:hover:bg-gray-800 dark:disabled:hover:text-gray-400 transition-colors duration-150 ${
                       !table.getCanNextPage() ? 'invisible' : ''
@@ -300,7 +289,7 @@ export function DataTable<T, TSearch = { pageIndex?: number; pageSize?: number }
                     title="Last page"
                   >
                     <MdLastPage className="w-4 h-4" />
-                  </Link>
+                  </button>
                 </div>
                 
                 {/* Right: Page Size Selector */}
@@ -313,9 +302,9 @@ export function DataTable<T, TSearch = { pageIndex?: number; pageSize?: number }
                     value={table.getState().pagination.pageSize}
                     onChange={e => {
                       const newPageSize = Number(e.target.value);
-                      onSearchChange({
+                      updateSearchParams({
                         pageSize: newPageSize,
-                        pageIndex: Math.floor( ( pagination.pageIndex * pagination.pageSize ) / newPageSize ), // Reset to first page when changing page size
+                        pageIndex: Math.floor( ( pagination.pageIndex * pagination.pageSize ) / newPageSize ),
                       });
                     }}
                     className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-150"
