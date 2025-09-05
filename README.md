@@ -6,86 +6,17 @@ Live Demo: http://tanstack-composable-table.benhouston3d.com
 
 ## 🚀 Features
 
-- **Composable Architecture**: Mix and match components to create custom table experiences
-- **Server-Side Operations**: Efficient pagination and sorting with TanStack Start server functions
-- **Multiple View Modes**: Switch between table and card views seamlessly
-- **URL State Management**: Shareable URLs that preserve table state
+- **Composable Architecture**: Mix and match components to create custom table experiences with significant code reuse
+- **URL State Management**: Supports either React State or shareable URLs that preserve table state
 - **TypeScript Support**: Fully typed for better developer experience
-- **Responsive Design**: Works great on desktop and mobile devices
-- **Dark Mode**: Built-in dark mode support with Tailwind CSS
 
 ## 🛠️ Tech Stack
 
 - **React 19** - Latest React with concurrent features
 - **TanStack Table** - Powerful table logic and state management
-- **TanStack Start** - Full-stack React framework with server functions
 - **TanStack Router** - Type-safe routing with file-based routing
 - **TanStack Query** - Server state management and caching
 - **TypeScript** - Type-safe development
-- **Tailwind CSS** - Utility-first CSS framework
-- **React Icons** - Beautiful icon library
-
-## 📦 Installation
-
-This project uses `pnpm` as the package manager. Make sure you have `pnpm` installed:
-
-```bash
-npm install -g pnpm
-```
-
-Then install dependencies:
-
-```bash
-pnpm install
-```
-
-## 🏃‍♂️ Development
-
-Start the development server:
-
-```bash
-pnpm dev
-```
-
-The application will be available at `http://localhost:3000`.
-
-## 🏗️ Build
-
-Build the application for production:
-
-```bash
-pnpm build
-```
-
-Start the production server:
-
-```bash
-pnpm start
-```
-
-## 📖 Demo Examples
-
-### 1. React State Demo (`/react-state`)
-
-Demonstrates the DataTable with React state management. Perfect for applications where you don't need URL persistence.
-
-**Features:**
-- 2,000 car listings with realistic data
-- Table and card view modes
-- Server-side pagination and sorting
-- Interactive actions (update car versions)
-- React state management
-
-### 2. URL Parameters Demo (`/url-parameters`)
-
-Shows how to integrate table state with URL parameters. Great for shareable links and browser history.
-
-**Features:**
-- 1,000 user records
-- URL-synced pagination and sorting
-- Custom sort controls
-- Bookmarkable table states
-- Browser history integration
 
 ## 🧩 Component Architecture
 
@@ -190,6 +121,46 @@ function CustomPaginator() {
     </div>
   )
 }
+```
+
+## 📖 Demo Examples
+
+### 1. React State Demo (`/react-state`)
+
+Demonstrates the DataTable with React state management. Perfect for applications where you don't need URL persistence.
+
+**Features:**
+- 2,000 car listings with realistic data
+- Table and card view modes
+- Server-side pagination and sorting
+- Interactive actions (update car versions)
+- React state management
+
+### 2. URL Parameters Demo (`/url-parameters`)
+
+Shows how to integrate table state with URL parameters. Great for shareable links and browser history.
+
+**Features:**
+- 1,000 user records
+- URL-synced pagination and sorting
+- Custom sort controls
+- Bookmarkable table states
+- Browser history integration
+
+
+## 📦 Local Dev Setup
+
+This project uses `pnpm` as the package manager. Make sure you have `pnpm` installed:
+
+```bash
+# Install pnpm
+npm install -g pnpm
+
+# Install dependencies
+pnpm install
+
+# Start dev server
+pnpm dev
 ```
 
 ## 📁 Project Structure

@@ -373,10 +373,6 @@ const fetcher = (pagination, sorting) =>
         {/* Footer */}
         <div className="text-center mt-16 text-gray-600 dark:text-gray-400">
           <p>Built with ❤️ using TanStack Table and modern React patterns</p>
-          <p className="mt-2">
-            Created by <a href="https://github.com/bhouston" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">Ben Houston</a> • 
-            <a href="https://benhouston3d.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline ml-1">benhouston3d.com</a>
-          </p>
         </div>
       </div>
     </div>
