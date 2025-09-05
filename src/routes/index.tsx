@@ -22,15 +22,13 @@ type User = {
 
 type GenerateUsersResult = DataTableResult<User>;
 
-const userIndexToVersion = new Map<number, number>();
-
 // Generate all users (this will be called once per request, but efficiently)
 const getAllUsers = (): User[] => {
   return Array.from({ length: 1000 }, (_, index) => ({
     id: index + 1,
     name: `User ${index + 1}`,
     email: `user${index + 1}@example.com`,
-    version: userIndexToVersion.get(index + 1) ?? 0,
+    version: 0,
   }));
 };
 
@@ -86,7 +84,9 @@ const getUsersServerFn = createServerFn({
     })
   )
   .handler(async ({ data: input }) => {
-    return getUsers(input.pagination, input.sorting);
+    const users = getUsers(input.pagination, input.sorting);
+    console.log("users", users);
+    return users;
   });
 
   const updateUserVersionServerFn = createServerFn({
@@ -94,8 +94,11 @@ const getUsersServerFn = createServerFn({
   })
     .validator(z.object({ id: z.number() }))
     .handler(async ({ data: input }) => {
-      userIndexToVersion.set(input.id, ( userIndexToVersion.get(input.id) ?? 0 ) + 1);
-      // Version updates will be reflected in the next getAllUsers() call
+        allUsers.forEach(user => {
+        if (user.id === input.id) {
+          user.version++;
+        }
+      });
     });
   
 
