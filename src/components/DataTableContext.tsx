@@ -1,6 +1,6 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { PaginationState, useReactTable, getCoreRowModel, ColumnDef } from '@tanstack/react-table';
+import { PaginationState, ColumnSort, useReactTable, getCoreRowModel, getSortedRowModel, ColumnDef } from '@tanstack/react-table';
 
 // Generic types for the DataTable context
 export interface DataTableResult<T> {
@@ -20,10 +20,15 @@ export interface DataTableContextValue<T> {
   pagination: PaginationState;
   updateSearchParams: (newPagination: PaginationState) => void;
   
+  // Sorting state
+  sorting: ColumnSort | undefined;
+  updateSorting: (newSorting: ColumnSort | undefined) => void;
+  
   // Configuration
   pageSizeOptions: number[];
   defaultPageSize: number;
   emptyMessage: string;
+  sortableColumns: Array<{ id: string; header: string }>;
 }
 
 // Create the context
@@ -42,13 +47,14 @@ export function useDataTableContext<T>(): DataTableContextValue<T> {
 export interface DataTableProviderProps<T> {
   children: ReactNode;
   queryKey: (string | number)[];
-  fetcher: (pagination: PaginationState) => Promise<DataTableResult<T>>;
+  fetcher: (pagination: PaginationState, sorting: ColumnSort | undefined) => Promise<DataTableResult<T>>;
   columns: ColumnDef<T, any>[];
-  searchParams: Partial<PaginationState>;
-  onSearchChange: (search: Partial<PaginationState>) => void;
+  searchParams: Partial<PaginationState & { sorting: ColumnSort | undefined }>;
+  onSearchChange: (search: Partial<PaginationState & { sorting: ColumnSort | undefined }>) => void;
   pageSizeOptions?: number[];
   defaultPageSize?: number;
   emptyMessage?: string;
+  defaultSorting?: ColumnSort | undefined;
 }
 
 export function DataTableProvider<T>({
@@ -61,6 +67,7 @@ export function DataTableProvider<T>({
   pageSizeOptions = [10, 20, 30, 40, 50],
   defaultPageSize = 10,
   emptyMessage = 'No data found',
+  defaultSorting = undefined,
 }: DataTableProviderProps<T>) {
   // Validate pageSizeOptions
   if (!pageSizeOptions || pageSizeOptions.length === 0) {
@@ -77,6 +84,17 @@ export function DataTableProvider<T>({
     pageSize: searchParams.pageSize ?? defaultPageSize,
   };
 
+  // Get sorting state from search params
+  const sorting: ColumnSort | undefined = (searchParams as any).sorting ?? defaultSorting;
+
+  // Extract sortable columns from the columns definition
+  const sortableColumns = columns
+    .filter(col => col.enableSorting !== false && ((col as any).accessorKey || col.id))
+    .map(col => ({
+      id: (col as any).accessorKey as string || col.id as string,
+      header: typeof col.header === 'string' ? col.header : col.id as string,
+    }));
+
   const updateSearchParams = (newPagination: PaginationState) => {
     newPagination.pageSize = pageSizeOptions.indexOf(newPagination.pageSize) !== -1 ? newPagination.pageSize : pageSizeOptions[0];
     newPagination.pageIndex = Math.min(Math.max(0, newPagination.pageIndex), (data?.rowCount || 0) * newPagination.pageSize - 1);
@@ -86,12 +104,23 @@ export function DataTableProvider<T>({
     onSearchChange({
       pageIndex: newPagination.pageIndex === 0 ? undefined : newPagination.pageIndex,
       pageSize: newPagination.pageSize === defaultPageSize ? undefined : newPagination.pageSize,
+      ...(sorting && { sorting }),
+    });
+  };
+
+  const updateSorting = (newSorting: ColumnSort | undefined) => {
+    if (JSON.stringify(newSorting) === JSON.stringify(sorting)) return;
+    
+    onSearchChange({
+      pageIndex: pagination.pageIndex === 0 ? undefined : pagination.pageIndex,
+      pageSize: pagination.pageSize === defaultPageSize ? undefined : pagination.pageSize,
+      ...(newSorting && { sorting: newSorting }),
     });
   };
 
   const { data, isLoading } = useQuery({
-    queryKey: [...queryKey, pagination.pageIndex, pagination.pageSize],
-    queryFn: async () => await fetcher(pagination),
+    queryKey: [...queryKey, pagination.pageIndex, pagination.pageSize, sorting],
+    queryFn: async () => await fetcher(pagination, sorting),
   });
 
   // Custom pagination change handler that updates search params
@@ -103,16 +132,31 @@ export function DataTableProvider<T>({
     updateSearchParams(newPagination);  
   };
 
+  // Custom sorting change handler that updates search params
+  const handleSortingChange = (updater: any) => {
+    const newSorting = typeof updater === 'function' 
+      ? updater(sorting ? [sorting] : []) 
+      : updater;
+    
+    // Convert array back to single sort or undefined
+    const singleSort = Array.isArray(newSorting) ? newSorting[0] : newSorting;
+    updateSorting(singleSort);
+  };
+
   const table = useReactTable({
     data: data?.rows ?? [],
     columns,
     getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     rowCount: data?.rowCount,
     onPaginationChange: handlePaginationChange,
+    onSortingChange: handleSortingChange,
     state: {
       pagination,
+      sorting: sorting ? [sorting] : [],
     },
     manualPagination: true,
+    manualSorting: true,
   });
 
   const contextValue: DataTableContextValue<T> = {
@@ -121,9 +165,12 @@ export function DataTableProvider<T>({
     table,
     pagination,
     updateSearchParams,
+    sorting,
+    updateSorting,
     pageSizeOptions,
     defaultPageSize,
     emptyMessage,
+    sortableColumns,
   };
 
   return (

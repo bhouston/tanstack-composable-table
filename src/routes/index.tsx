@@ -1,10 +1,10 @@
 import React from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { createColumnHelper, PaginationState } from "@tanstack/react-table";
+import { createColumnHelper, PaginationState, ColumnSort } from "@tanstack/react-table";
 
 import { createServerFn, useServerFn } from "@tanstack/react-start";
 import z from "zod/v4";
-import { FaCircle, FaTrash, FaTable, FaTh } from "react-icons/fa";
+import { FaCircle, FaTrash, FaTable, FaTh, FaSort } from "react-icons/fa";
 import { DataTable } from "../components/DataTable";
 import { DataTableResult } from "../components/DataTableContext";
 import { ListView } from "../components/ListView";
@@ -23,20 +23,54 @@ type GenerateUsersResult = DataTableResult<User>;
 
 const userIndexToVersion = new Map<number, number>();
 
-const generateUsers = (
-  pageIndex: number,
-  pageSize: number
-): GenerateUsersResult => {
-  const startIndex = pageIndex * pageSize;
-  const array: User[] = Array.from({ length: pageSize }, (_, index) => ({
-    id: startIndex + index + 1,
-    name: `User ${startIndex + index + 1}`,
-    email: `user${startIndex + index + 1}@example.com`,
-    version: userIndexToVersion.get(startIndex + index + 1) ?? 0,
+// Generate all users (this will be called once per request, but efficiently)
+const getAllUsers = (): User[] => {
+  return Array.from({ length: 1000 }, (_, index) => ({
+    id: index + 1,
+    name: `User ${index + 1}`,
+    email: `user${index + 1}@example.com`,
+    version: userIndexToVersion.get(index + 1) ?? 0,
   }));
+};
+
+const getUsers = (
+  pageIndex: number,
+  pageSize: number,
+  sorting: ColumnSort | undefined = undefined
+): GenerateUsersResult => {
+  // Get all users with current version data
+  let allUsers = getAllUsers();
+  
+  // Apply sorting to the entire dataset if specified
+  if (sorting) {
+    allUsers = [...allUsers].sort((a, b) => {
+      let aValue: any = a[sorting.id as keyof User];
+      let bValue: any = b[sorting.id as keyof User];
+      
+      // Handle string comparison
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        const result = aValue.localeCompare(bValue);
+        return sorting.desc ? -result : result;
+      }
+      
+      // Handle number comparison
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        const result = aValue - bValue;
+        return sorting.desc ? -result : result;
+      }
+      
+      return 0;
+    });
+  }
+  
+  // Now paginate the sorted results
+  const startIndex = pageIndex * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedUsers = allUsers.slice(startIndex, endIndex);
+  
   return {
-    rows: array,
-    rowCount: 1000,
+    rows: paginatedUsers,
+    rowCount: allUsers.length,
   };
 };
 
@@ -46,10 +80,14 @@ const getUsersServerFn = createServerFn({
   .validator(
     z.object({
       pagination: z.object({ pageIndex: z.number(), pageSize: z.number() }),
+      sorting: z.object({
+        id: z.string(),
+        desc: z.boolean(),
+      }).optional(),
     })
   )
   .handler(async ({ data: input }) => {
-    return generateUsers(input.pagination.pageIndex, input.pagination.pageSize);
+    return getUsers(input.pagination.pageIndex, input.pagination.pageSize, input.sorting);
   });
 
   const updateUserVersionServerFn = createServerFn({
@@ -58,6 +96,7 @@ const getUsersServerFn = createServerFn({
     .validator(z.object({ id: z.number() }))
     .handler(async ({ data: input }) => {
       userIndexToVersion.set(input.id, ( userIndexToVersion.get(input.id) ?? 0 ) + 1);
+      // Version updates will be reflected in the next getAllUsers() call
     });
   
 
@@ -73,20 +112,22 @@ function Home() {
   const [viewMode, setViewMode] = React.useState<'table' | 'cards'>('table');
   
   const fetcher = async (
-    pagination: PaginationState
+    pagination: PaginationState,
+    sorting: ColumnSort | undefined
   ): Promise<GenerateUsersResult> => {
-    return await getUsers({ data: { pagination } });
+    return await getUsers({ data: { pagination, sorting } });
   };
 
-  const handleSearchChange = (newPagination: Partial<PaginationState>) => {
-    console.log("newPagination", newPagination);
+  const handleSearchChange = (newSearch: Partial<PaginationState & { sorting: ColumnSort | undefined }>) => {
+    console.log("newSearch", newSearch);
   
     navigate({
       search: (prev) =>{
-        const newSearch = { ...prev };
-        delete newSearch.pageIndex;
-        delete newSearch.pageSize;
-        return { ...newSearch, ...newPagination };
+        const updatedSearch = { ...prev };
+        delete updatedSearch.pageIndex;
+        delete updatedSearch.pageSize;
+        delete updatedSearch.sorting;
+        return { ...updatedSearch, ...newSearch };
       },
     });
   };
@@ -136,34 +177,76 @@ const columns = [
                 </p>
               </div>
               
-              {/* View Toggle Buttons */}
-              <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  View:
-                </span>
-                <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-                  <button
-                    onClick={() => setViewMode('table')}
-                    className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-md transition-colors duration-150 ${
-                      viewMode === 'table'
-                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                    }`}
+              {/* Controls */}
+              <div className="flex items-center space-x-4">
+                {/* Sort Dropdown */}
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Sort:
+                  </span>
+                  <select
+                    value={search.sorting?.id || 'name'}
+                    onChange={(e) => {
+                      const columnId = e.target.value;
+                      const currentSort = search.sorting;
+                      const isDesc = currentSort?.id === columnId ? !currentSort.desc : false;
+                      
+                      handleSearchChange({
+                        sorting: { id: columnId, desc: isDesc }
+                      });
+                    }}
+                    className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <FaTable className="w-4 h-4" />
-                    <span>Table</span>
-                  </button>
+                    <option value="name">Name</option>
+                    <option value="email">Email</option>
+                    <option value="version">Version</option>
+                    <option value="id">ID</option>
+                  </select>
                   <button
-                    onClick={() => setViewMode('cards')}
-                    className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-md transition-colors duration-150 ${
-                      viewMode === 'cards'
-                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                    }`}
+                    onClick={() => {
+                      const currentSort = search.sorting;
+                      if (currentSort) {
+                        handleSearchChange({
+                          sorting: { id: currentSort.id, desc: !currentSort.desc }
+                        });
+                      }
+                    }}
+                    className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors duration-150"
+                    title="Toggle sort direction"
                   >
-                    <FaTh className="w-4 h-4" />
-                    <span>Cards</span>
+                    <FaSort className={`w-4 h-4 ${search.sorting?.desc ? 'rotate-180' : ''}`} />
                   </button>
+                </div>
+
+                {/* View Toggle Buttons */}
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    View:
+                  </span>
+                  <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                    <button
+                      onClick={() => setViewMode('table')}
+                      className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-md transition-colors duration-150 ${
+                        viewMode === 'table'
+                          ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                      }`}
+                    >
+                      <FaTable className="w-4 h-4" />
+                      <span>Table</span>
+                    </button>
+                    <button
+                      onClick={() => setViewMode('cards')}
+                      className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-md transition-colors duration-150 ${
+                        viewMode === 'cards'
+                          ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                      }`}
+                    >
+                      <FaTh className="w-4 h-4" />
+                      <span>Cards</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -176,6 +259,7 @@ const columns = [
             onSearchChange={handleSearchChange}
             emptyMessage="No users found"
             defaultPageSize={10}
+            defaultSorting={{ id: 'name', desc: false }}
           >
             {viewMode === 'table' ? (
               <>
@@ -232,5 +316,9 @@ export const Route = createFileRoute("/")({
   validateSearch: z.object({
     pageIndex: z.number().optional().catch(0),
     pageSize: z.number().optional().catch(10),
+    sorting: z.object({
+      id: z.string(),
+      desc: z.boolean(),
+    }).optional().catch(undefined),
   }),
 });

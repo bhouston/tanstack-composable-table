@@ -1,24 +1,25 @@
 import React, { ReactNode } from 'react';
-import { PaginationState, ColumnDef } from '@tanstack/react-table';
+import { PaginationState, ColumnSort, ColumnDef } from '@tanstack/react-table';
 import { DataTableProvider, DataTableResult } from './DataTableContext';
 
 // Generic types for the DataTable
 export interface DataTableProps<T> {
   // Data fetching
   queryKey: (string | number)[];
-  fetcher: (pagination: PaginationState) => Promise<DataTableResult<T>>;
+  fetcher: (pagination: PaginationState, sorting: ColumnSort | undefined) => Promise<DataTableResult<T>>;
   
   // Table configuration
   columns: ColumnDef<T, any>[];
   
   // Search params configuration
-  searchParams: Partial<PaginationState>;
-  onSearchChange: (search: Partial<PaginationState>) => void;
+  searchParams: Partial<PaginationState & { sorting: ColumnSort | undefined }>;
+  onSearchChange: (search: Partial<PaginationState & { sorting: ColumnSort | undefined }>) => void;
   
   // Optional props
   emptyMessage?: string;
   pageSizeOptions?: number[];
   defaultPageSize?: number;
+  defaultSorting?: ColumnSort | undefined;
   className?: string;
   
   // Required children for composition
@@ -34,6 +35,7 @@ export function DataTable<T>({
   emptyMessage = 'No data found',
   pageSizeOptions = [10, 20, 30, 40, 50],
   defaultPageSize = 10,
+  defaultSorting = undefined,
   className = '',
   children,
 }: DataTableProps<T>) {
@@ -46,6 +48,7 @@ export function DataTable<T>({
       onSearchChange={onSearchChange}
       pageSizeOptions={pageSizeOptions}
       defaultPageSize={defaultPageSize}
+      defaultSorting={defaultSorting}
       emptyMessage={emptyMessage}
     >
       <div className={className}>
