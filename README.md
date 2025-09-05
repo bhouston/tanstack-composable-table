@@ -2,6 +2,8 @@
 
 A powerful, flexible, and composable data table component built with TanStack React-Table. This demo showcases how to create reusable table components with server-side pagination, sorting, multiple view modes, and URL state management.
 
+Live Demo: http://tanstack-composable-table.benhouston3d.com
+
 ## 🚀 Features
 
 - **Composable Architecture**: Mix and match components to create custom table experiences
