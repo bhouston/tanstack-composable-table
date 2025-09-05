@@ -51,8 +51,7 @@ const carColors = [
 const carIndexToVersion = new Map<number, number>();
 
 const generateCars = (
-  pageIndex: number,
-  pageSize: number,
+  pagination: PaginationState,
   sorting: ColumnSort
 ): GenerateCarsResult => {
   // Generate all cars first
@@ -98,8 +97,8 @@ const generateCars = (
   });
   
   // Apply pagination
-  const startIndex = pageIndex * pageSize;
-  const array = sortedCars.slice(startIndex, startIndex + pageSize);
+  const startIndex = pagination.pageIndex * pagination.pageSize;
+  const array = sortedCars.slice(startIndex, startIndex + pagination.pageSize);
   return {
     rows: array,
     rowCount: allCars.length,
@@ -119,7 +118,7 @@ const getCarsServerFn = createServerFn({
     })
   )
   .handler(async ({ data: input }) => {
-    return generateCars(input.pagination.pageIndex, input.pagination.pageSize, input.sorting);
+    return generateCars(input.pagination, input.sorting);
   });
 
 const updateCarVersionServerFn = createServerFn({

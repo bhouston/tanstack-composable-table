@@ -38,16 +38,16 @@ const getAllUsers = (): User[] => {
   }));
 };
 
+  // Get all users with current version data
+let allUsers = getAllUsers();
+
 const getUsers = (
-  pageIndex: number,
-  pageSize: number,
+  pagination: PaginationState,
   sorting: ColumnSort
 ): GenerateUsersResult => {
-  // Get all users with current version data
-  let allUsers = getAllUsers();
   
   // Apply sorting to the entire dataset
-  allUsers = [...allUsers].sort((a, b) => {
+  let sortedUsers = [...allUsers].sort((a, b) => {
     let aValue: any = a[sorting.id as keyof User];
     let bValue: any = b[sorting.id as keyof User];
     
@@ -67,9 +67,9 @@ const getUsers = (
   });
   
   // Now paginate the sorted results
-  const startIndex = pageIndex * pageSize;
-  const endIndex = startIndex + pageSize;
-  const paginatedUsers = allUsers.slice(startIndex, endIndex);
+  const startIndex = pagination.pageIndex * pagination.pageSize;
+  const endIndex = startIndex + pagination.pageSize;
+  const paginatedUsers = sortedUsers.slice(startIndex, endIndex);
   
   return {
     rows: paginatedUsers,
@@ -90,7 +90,7 @@ const getUsersServerFn = createServerFn({
     })
   )
   .handler(async ({ data: input }) => {
-    return getUsers(input.pagination.pageIndex, input.pagination.pageSize, input.sorting);
+    return getUsers(input.pagination, input.sorting);
   });
 
   const updateUserVersionServerFn = createServerFn({
