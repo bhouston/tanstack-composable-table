@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build && tsc --noEmit",
-    "start": "node .output/server/index.mjs"
+    "start": "node .output/server/index.mjs",
+    "gcloud:login": "gcloud auth application-default login && gcloud config set account \"neuralsoft@gmail.com\" && gcloud config set project bhouston-general-hosting && gcloud config set run/region us-central1"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.86.0",

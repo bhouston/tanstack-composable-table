@@ -1,0 +1,17 @@
+name: main
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-main:
+    name: Deploy Main Service
+    uses: ./.github/workflows/service-deploy.yml
+    with:
+      environment: main
+      service_name: tanstack-composable-datatable
+      project_id: bhouston-general-hosting
+    secrets:
+      GCP_SA_KEY: ${{ secrets.GCP_MAIN_SA_KEY }}

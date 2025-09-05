@@ -18,3 +18,10 @@ yarn.lock
 /blob-report/
 /playwright/.cache/
 .tanstack
+
+# Google Cloud deployment keys
+deployment-key.json
+deployment-dev-key.json
+*.json
+!package.json
+!tsconfig.json

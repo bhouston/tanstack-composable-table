@@ -317,7 +317,7 @@ function CarsPage() {
   );
 }
 
-export const Route = createFileRoute("/cars")({
+export const Route = createFileRoute("/react-state")({
   component: CarsPage,
   validateSearch: z.object({}),
 });

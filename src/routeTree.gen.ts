@@ -9,12 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as CarsRouteImport } from './routes/cars'
+import { Route as UrlParametersRouteImport } from './routes/url-parameters'
+import { Route as ReactStateRouteImport } from './routes/react-state'
 import { Route as IndexRouteImport } from './routes/index'
 
-const CarsRoute = CarsRouteImport.update({
-  id: '/cars',
-  path: '/cars',
+const UrlParametersRoute = UrlParametersRouteImport.update({
+  id: '/url-parameters',
+  path: '/url-parameters',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReactStateRoute = ReactStateRouteImport.update({
+  id: '/react-state',
+  path: '/react-state',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -25,37 +31,48 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/cars': typeof CarsRoute
+  '/react-state': typeof ReactStateRoute
+  '/url-parameters': typeof UrlParametersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/cars': typeof CarsRoute
+  '/react-state': typeof ReactStateRoute
+  '/url-parameters': typeof UrlParametersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/cars': typeof CarsRoute
+  '/react-state': typeof ReactStateRoute
+  '/url-parameters': typeof UrlParametersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/cars'
+  fullPaths: '/' | '/react-state' | '/url-parameters'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/cars'
-  id: '__root__' | '/' | '/cars'
+  to: '/' | '/react-state' | '/url-parameters'
+  id: '__root__' | '/' | '/react-state' | '/url-parameters'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  CarsRoute: typeof CarsRoute
+  ReactStateRoute: typeof ReactStateRoute
+  UrlParametersRoute: typeof UrlParametersRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/cars': {
-      id: '/cars'
-      path: '/cars'
-      fullPath: '/cars'
-      preLoaderRoute: typeof CarsRouteImport
+    '/url-parameters': {
+      id: '/url-parameters'
+      path: '/url-parameters'
+      fullPath: '/url-parameters'
+      preLoaderRoute: typeof UrlParametersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/react-state': {
+      id: '/react-state'
+      path: '/react-state'
+      fullPath: '/react-state'
+      preLoaderRoute: typeof ReactStateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -70,7 +87,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  CarsRoute: CarsRoute,
+  ReactStateRoute: ReactStateRoute,
+  UrlParametersRoute: UrlParametersRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
