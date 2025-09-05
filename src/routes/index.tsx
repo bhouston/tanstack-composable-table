@@ -7,6 +7,11 @@ import z from "zod/v4";
 import { FaCircle, FaTrash, FaTable, FaTh, FaSort } from "react-icons/fa";
 import { DataTable } from "../components/DataTable";
 import { DataTableResult } from "../components/DataTableContext";
+import { 
+  searchParamsToPagination, 
+  searchParamsToColumnSort, 
+  createSearchParamHandlers 
+} from "../components/DataTableHelpers";
 import { ListView } from "../components/ListView";
 import { BottomPaginator } from "../components/BottomPaginator";
 import { CardView } from "../components/CardView";
@@ -36,32 +41,30 @@ const getAllUsers = (): User[] => {
 const getUsers = (
   pageIndex: number,
   pageSize: number,
-  sorting: ColumnSort | undefined = undefined
+  sorting: ColumnSort
 ): GenerateUsersResult => {
   // Get all users with current version data
   let allUsers = getAllUsers();
   
-  // Apply sorting to the entire dataset if specified
-  if (sorting) {
-    allUsers = [...allUsers].sort((a, b) => {
-      let aValue: any = a[sorting.id as keyof User];
-      let bValue: any = b[sorting.id as keyof User];
-      
-      // Handle string comparison
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        const result = aValue.localeCompare(bValue);
-        return sorting.desc ? -result : result;
-      }
-      
-      // Handle number comparison
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        const result = aValue - bValue;
-        return sorting.desc ? -result : result;
-      }
-      
-      return 0;
-    });
-  }
+  // Apply sorting to the entire dataset
+  allUsers = [...allUsers].sort((a, b) => {
+    let aValue: any = a[sorting.id as keyof User];
+    let bValue: any = b[sorting.id as keyof User];
+    
+    // Handle string comparison
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      const result = aValue.localeCompare(bValue);
+      return sorting.desc ? -result : result;
+    }
+    
+    // Handle number comparison
+    if (typeof aValue === 'number' && typeof bValue === 'number') {
+      const result = aValue - bValue;
+      return sorting.desc ? -result : result;
+    }
+    
+    return 0;
+  });
   
   // Now paginate the sorted results
   const startIndex = pageIndex * pageSize;
@@ -83,7 +86,7 @@ const getUsersServerFn = createServerFn({
       sorting: z.object({
         id: z.string(),
         desc: z.boolean(),
-      }).optional(),
+      }),
     })
   )
   .handler(async ({ data: input }) => {
@@ -113,24 +116,21 @@ function Home() {
   
   const fetcher = async (
     pagination: PaginationState,
-    sorting: ColumnSort | undefined
+    sorting: ColumnSort
   ): Promise<GenerateUsersResult> => {
     return await getUsers({ data: { pagination, sorting } });
   };
 
-  const handleSearchChange = (newSearch: Partial<PaginationState & { sorting: ColumnSort | undefined }>) => {
-    console.log("newSearch", newSearch);
+  // Convert search params to state
+  const pagination = searchParamsToPagination(search, 10);
+  const columnSort = searchParamsToColumnSort(search, { id: 'name', desc: false });
   
-    navigate({
-      search: (prev) =>{
-        const updatedSearch = { ...prev };
-        delete updatedSearch.pageIndex;
-        delete updatedSearch.pageSize;
-        delete updatedSearch.sorting;
-        return { ...updatedSearch, ...newSearch };
-      },
-    });
-  };
+  // Create handlers for search parameter management
+  const { onPaginationChange, onColumnSortChange } = createSearchParamHandlers(
+    navigate,
+    10,
+    { id: 'name', desc: false }
+  );
 
   const columnHelper = createColumnHelper<User>();
 
@@ -185,15 +185,12 @@ const columns = [
                     Sort:
                   </span>
                   <select
-                    value={search.sorting?.id || 'name'}
+                    value={columnSort.id}
                     onChange={(e) => {
                       const columnId = e.target.value;
-                      const currentSort = search.sorting;
-                      const isDesc = currentSort?.id === columnId ? !currentSort.desc : false;
+                      const isDesc = columnSort.id === columnId ? !columnSort.desc : false;
                       
-                      handleSearchChange({
-                        sorting: { id: columnId, desc: isDesc }
-                      });
+                      onColumnSortChange({ id: columnId, desc: isDesc });
                     }}
                     className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
@@ -204,17 +201,12 @@ const columns = [
                   </select>
                   <button
                     onClick={() => {
-                      const currentSort = search.sorting;
-                      if (currentSort) {
-                        handleSearchChange({
-                          sorting: { id: currentSort.id, desc: !currentSort.desc }
-                        });
-                      }
+                      onColumnSortChange({ id: columnSort.id, desc: !columnSort.desc });
                     }}
                     className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors duration-150"
                     title="Toggle sort direction"
                   >
-                    <FaSort className={`w-4 h-4 ${search.sorting?.desc ? 'rotate-180' : ''}`} />
+                    <FaSort className={`w-4 h-4 ${columnSort.desc ? 'rotate-180' : ''}`} />
                   </button>
                 </div>
 
@@ -255,11 +247,11 @@ const columns = [
             queryKey={["users"]}
             fetcher={fetcher}
             columns={columns}
-            searchParams={search}
-            onSearchChange={handleSearchChange}
+            pagination={pagination}
+            onPaginationChange={onPaginationChange}
+            columnSort={columnSort}
+            onColumnSortChange={onColumnSortChange}
             emptyMessage="No users found"
-            defaultPageSize={10}
-            defaultSorting={{ id: 'name', desc: false }}
           >
             {viewMode === 'table' ? (
               <>
@@ -316,9 +308,7 @@ export const Route = createFileRoute("/")({
   validateSearch: z.object({
     pageIndex: z.number().optional().catch(0),
     pageSize: z.number().optional().catch(10),
-    sorting: z.object({
-      id: z.string(),
-      desc: z.boolean(),
-    }).optional().catch(undefined),
+    sortId: z.string().optional().catch('name'),
+    sortDesc: z.boolean().optional().catch(false),
   }),
 });

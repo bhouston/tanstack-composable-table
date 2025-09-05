@@ -1,12 +1,13 @@
 import React from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { createColumnHelper, PaginationState } from "@tanstack/react-table";
+import { createColumnHelper, PaginationState, ColumnSort } from "@tanstack/react-table";
 
 import { createServerFn, useServerFn } from "@tanstack/react-start";
 import z from "zod/v4";
 import { FaCircle, FaTrash, FaTable, FaTh, FaCar } from "react-icons/fa";
 import { DataTable } from "../components/DataTable";
 import { DataTableResult } from "../components/DataTableContext";
+import { createReactStateHandlers } from "../components/DataTableHelpers";
 import { ListView } from "../components/ListView";
 import { BottomPaginator } from "../components/BottomPaginator";
 import { CardView } from "../components/CardView";
@@ -51,11 +52,12 @@ const carIndexToVersion = new Map<number, number>();
 
 const generateCars = (
   pageIndex: number,
-  pageSize: number
+  pageSize: number,
+  sorting: ColumnSort
 ): GenerateCarsResult => {
-  const startIndex = pageIndex * pageSize;
-  const array: Car[] = Array.from({ length: pageSize }, (_, index) => {
-    const carIndex = startIndex + index + 1;
+  // Generate all cars first
+  const allCars: Car[] = Array.from({ length: 2000 }, (_, index) => {
+    const carIndex = index + 1;
     const makeIndex = carIndex % carMakes.length;
     const modelIndex = Math.floor(carIndex / carMakes.length) % carModels.length;
     const colorIndex = (carIndex * 3) % carColors.length;
@@ -74,9 +76,33 @@ const generateCars = (
       version: carIndexToVersion.get(carIndex) ?? 0,
     };
   });
+  
+  // Apply sorting
+  const sortedCars = [...allCars].sort((a, b) => {
+    let aValue: any = a[sorting.id as keyof Car];
+    let bValue: any = b[sorting.id as keyof Car];
+    
+    // Handle string comparison
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      const result = aValue.localeCompare(bValue);
+      return sorting.desc ? -result : result;
+    }
+    
+    // Handle number comparison
+    if (typeof aValue === 'number' && typeof bValue === 'number') {
+      const result = aValue - bValue;
+      return sorting.desc ? -result : result;
+    }
+    
+    return 0;
+  });
+  
+  // Apply pagination
+  const startIndex = pageIndex * pageSize;
+  const array = sortedCars.slice(startIndex, startIndex + pageSize);
   return {
     rows: array,
-    rowCount: 2000, // More cars than users for testing
+    rowCount: allCars.length,
   };
 };
 
@@ -86,10 +112,14 @@ const getCarsServerFn = createServerFn({
   .validator(
     z.object({
       pagination: z.object({ pageIndex: z.number(), pageSize: z.number() }),
+      sorting: z.object({
+        id: z.string(),
+        desc: z.boolean(),
+      }),
     })
   )
   .handler(async ({ data: input }) => {
-    return generateCars(input.pagination.pageIndex, input.pagination.pageSize);
+    return generateCars(input.pagination.pageIndex, input.pagination.pageSize, input.sorting);
   });
 
 const updateCarVersionServerFn = createServerFn({
@@ -104,30 +134,26 @@ function CarsPage() {
   const getCars = useServerFn(getCarsServerFn);
   const updateCarVersion = useServerFn(updateCarVersionServerFn);
   const queryClient = useQueryClient();
-  const navigate = Route.useNavigate();
-  const search = Route.useSearch();
   
   // View toggle state
   const [viewMode, setViewMode] = React.useState<'table' | 'cards'>('table');
   
+  // DataTable state using React useState
+  const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 12 });
+  const [columnSort, setColumnSort] = React.useState<ColumnSort>({ id: 'make', desc: false });
+  
   const fetcher = async (
-    pagination: PaginationState
+    pagination: PaginationState,
+    sorting: ColumnSort
   ): Promise<GenerateCarsResult> => {
-    return await getCars({ data: { pagination } });
+    return await getCars({ data: { pagination, sorting } });
   };
 
-  const handleSearchChange = (newPagination: Partial<PaginationState>) => {
-    console.log("newPagination", newPagination);
-  
-    navigate({
-      search: (prev) => {
-        const newSearch = { ...prev };
-        delete newSearch.pageIndex;
-        delete newSearch.pageSize;
-        return { ...newSearch, ...newPagination };
-      },
-    });
-  };
+  // Create handlers for React state management
+  const { onPaginationChange, onColumnSortChange } = createReactStateHandlers(
+    setPagination,
+    setColumnSort
+  );
 
   const columnHelper = createColumnHelper<Car>();
 
@@ -224,10 +250,11 @@ function CarsPage() {
             queryKey={["cars"]}
             fetcher={fetcher}
             columns={columns}
-            searchParams={search}
-            onSearchChange={handleSearchChange}
+            pagination={pagination}
+            onPaginationChange={onPaginationChange}
+            columnSort={columnSort}
+            onColumnSortChange={onColumnSortChange}
             emptyMessage="No cars found"
-            defaultPageSize={12}
           >
             {viewMode === 'table' ? (
               <>
@@ -297,8 +324,5 @@ function CarsPage() {
 
 export const Route = createFileRoute("/cars")({
   component: CarsPage,
-  validateSearch: z.object({
-    pageIndex: z.number().optional().catch(0),
-    pageSize: z.number().optional().catch(12),
-  }),
+  validateSearch: z.object({}),
 });

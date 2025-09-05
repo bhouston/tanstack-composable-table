@@ -18,7 +18,7 @@ export function BottomPaginator({
   showNavigationButtons = true,
   layout = 'spread',
 }: BottomPaginatorProps) {
-  const { table, pagination, updateSearchParams, pageSizeOptions, defaultPageSize } = useDataTableContext();
+  const { table, pagination, onPaginationChange, pageSizeOptions } = useDataTableContext();
   
   const [pageInput, setPageInput] = useState<string>((pagination.pageIndex + 1).toString());
   const [isPageInputValid, setIsPageInputValid] = useState<boolean>(true);
@@ -50,7 +50,7 @@ export function BottomPaginator({
     const pageNumber = parseInt(pageInput, 10);
     const targetPageIndex = pageNumber - 1;
 
-    updateSearchParams({ pageIndex: targetPageIndex, pageSize: pagination.pageSize });
+    onPaginationChange({ pageIndex: targetPageIndex, pageSize: pagination.pageSize });
   };
 
   const handlePageInputKeyPress = (e: React.KeyboardEvent) => {
@@ -65,14 +65,14 @@ export function BottomPaginator({
     return (
       <div className="flex items-center space-x-2">
         <PaginationButton
-          onClick={() => updateSearchParams({ pageIndex: 0, pageSize: pagination.pageSize })}
+          onClick={() => onPaginationChange({ pageIndex: 0, pageSize: pagination.pageSize })}
           disabled={!table.getCanPreviousPage()}
           title="First page"
         >
           <MdFirstPage className="w-4 h-4" />
         </PaginationButton>
         <PaginationButton
-          onClick={() => updateSearchParams({ pageIndex: pagination.pageIndex - 1, pageSize: pagination.pageSize })}
+          onClick={() => onPaginationChange({ pageIndex: pagination.pageIndex - 1, pageSize: pagination.pageSize })}
           disabled={!table.getCanPreviousPage()}
           title="Previous page"
         >
@@ -114,14 +114,14 @@ export function BottomPaginator({
     return (
       <div className="flex items-center space-x-2">
         <PaginationButton
-          onClick={() => updateSearchParams({ pageIndex: pagination.pageIndex + 1, pageSize: pagination.pageSize })}
+          onClick={() => onPaginationChange({ pageIndex: pagination.pageIndex + 1, pageSize: pagination.pageSize })}
           disabled={!table.getCanNextPage()}
           title="Next page"
         >
           <MdNavigateNext className="w-4 h-4" />
         </PaginationButton>
         <PaginationButton
-          onClick={() => updateSearchParams({ pageIndex: table.getPageCount() - 1, pageSize: pagination.pageSize })}
+          onClick={() => onPaginationChange({ pageIndex: table.getPageCount() - 1, pageSize: pagination.pageSize })}
           disabled={!table.getCanNextPage()}
           title="Last page"
         >
@@ -144,7 +144,7 @@ export function BottomPaginator({
           value={table.getState().pagination.pageSize}
           onChange={e => {
             const newPageSize = Number(e.target.value);
-            updateSearchParams({
+            onPaginationChange({
               pageSize: newPageSize,
               pageIndex: Math.floor((pagination.pageIndex * pagination.pageSize) / newPageSize),
             });

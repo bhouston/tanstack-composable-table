@@ -6,20 +6,20 @@ import { DataTableProvider, DataTableResult } from './DataTableContext';
 export interface DataTableProps<T> {
   // Data fetching
   queryKey: (string | number)[];
-  fetcher: (pagination: PaginationState, sorting: ColumnSort | undefined) => Promise<DataTableResult<T>>;
+  fetcher: (pagination: PaginationState, sorting: ColumnSort) => Promise<DataTableResult<T>>;
   
   // Table configuration
   columns: ColumnDef<T, any>[];
   
-  // Search params configuration
-  searchParams: Partial<PaginationState & { sorting: ColumnSort | undefined }>;
-  onSearchChange: (search: Partial<PaginationState & { sorting: ColumnSort | undefined }>) => void;
+  // Explicit state management
+  pagination: PaginationState;
+  onPaginationChange: (pagination: PaginationState) => void;
+  columnSort: ColumnSort;
+  onColumnSortChange: (columnSort: ColumnSort) => void;
   
   // Optional props
   emptyMessage?: string;
   pageSizeOptions?: number[];
-  defaultPageSize?: number;
-  defaultSorting?: ColumnSort | undefined;
   className?: string;
   
   // Required children for composition
@@ -30,12 +30,12 @@ export function DataTable<T>({
   queryKey,
   fetcher,
   columns,
-  searchParams,
-  onSearchChange,
+  pagination,
+  onPaginationChange,
+  columnSort,
+  onColumnSortChange,
   emptyMessage = 'No data found',
   pageSizeOptions = [10, 20, 30, 40, 50],
-  defaultPageSize = 10,
-  defaultSorting = undefined,
   className = '',
   children,
 }: DataTableProps<T>) {
@@ -44,11 +44,11 @@ export function DataTable<T>({
       queryKey={queryKey}
       fetcher={fetcher}
       columns={columns}
-      searchParams={searchParams}
-      onSearchChange={onSearchChange}
+      pagination={pagination}
+      onPaginationChange={onPaginationChange}
+      columnSort={columnSort}
+      onColumnSortChange={onColumnSortChange}
       pageSizeOptions={pageSizeOptions}
-      defaultPageSize={defaultPageSize}
-      defaultSorting={defaultSorting}
       emptyMessage={emptyMessage}
     >
       <div className={className}>

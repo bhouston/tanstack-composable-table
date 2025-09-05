@@ -18,15 +18,14 @@ export interface DataTableContextValue<T> {
   
   // Pagination state
   pagination: PaginationState;
-  updateSearchParams: (newPagination: PaginationState) => void;
+  onPaginationChange: (pagination: PaginationState) => void;
   
   // Sorting state
-  sorting: ColumnSort | undefined;
-  updateSorting: (newSorting: ColumnSort | undefined) => void;
+  columnSort: ColumnSort;
+  onColumnSortChange: (columnSort: ColumnSort) => void;
   
   // Configuration
   pageSizeOptions: number[];
-  defaultPageSize: number;
   emptyMessage: string;
   sortableColumns: Array<{ id: string; header: string }>;
 }
@@ -47,14 +46,14 @@ export function useDataTableContext<T>(): DataTableContextValue<T> {
 export interface DataTableProviderProps<T> {
   children: ReactNode;
   queryKey: (string | number)[];
-  fetcher: (pagination: PaginationState, sorting: ColumnSort | undefined) => Promise<DataTableResult<T>>;
+  fetcher: (pagination: PaginationState, sorting: ColumnSort) => Promise<DataTableResult<T>>;
   columns: ColumnDef<T, any>[];
-  searchParams: Partial<PaginationState & { sorting: ColumnSort | undefined }>;
-  onSearchChange: (search: Partial<PaginationState & { sorting: ColumnSort | undefined }>) => void;
+  pagination: PaginationState;
+  onPaginationChange: (pagination: PaginationState) => void;
+  columnSort: ColumnSort;
+  onColumnSortChange: (columnSort: ColumnSort) => void;
   pageSizeOptions?: number[];
-  defaultPageSize?: number;
   emptyMessage?: string;
-  defaultSorting?: ColumnSort | undefined;
 }
 
 export function DataTableProvider<T>({
@@ -62,12 +61,12 @@ export function DataTableProvider<T>({
   queryKey,
   fetcher,
   columns,
-  searchParams,
-  onSearchChange,
+  pagination,
+  onPaginationChange,
+  columnSort,
+  onColumnSortChange,
   pageSizeOptions = [10, 20, 30, 40, 50],
-  defaultPageSize = 10,
   emptyMessage = 'No data found',
-  defaultSorting = undefined,
 }: DataTableProviderProps<T>) {
   // Validate pageSizeOptions
   if (!pageSizeOptions || pageSizeOptions.length === 0) {
@@ -78,15 +77,6 @@ export function DataTableProvider<T>({
     throw new Error('All pageSizeOptions values must be greater than 0');
   }
 
-  // Get pagination state from search params
-  const pagination: PaginationState = {
-    pageIndex: searchParams.pageIndex ?? 0,
-    pageSize: searchParams.pageSize ?? defaultPageSize,
-  };
-
-  // Get sorting state from search params
-  const sorting: ColumnSort | undefined = (searchParams as any).sorting ?? defaultSorting;
-
   // Extract sortable columns from the columns definition
   const sortableColumns = columns
     .filter(col => col.enableSorting !== false && ((col as any).accessorKey || col.id))
@@ -95,52 +85,53 @@ export function DataTableProvider<T>({
       header: typeof col.header === 'string' ? col.header : col.id as string,
     }));
 
-  const updateSearchParams = (newPagination: PaginationState) => {
-    newPagination.pageSize = pageSizeOptions.indexOf(newPagination.pageSize) !== -1 ? newPagination.pageSize : pageSizeOptions[0];
-    newPagination.pageIndex = Math.min(Math.max(0, newPagination.pageIndex), (data?.rowCount || 0) * newPagination.pageSize - 1);
-  
-    if (newPagination.pageIndex === pagination.pageIndex && newPagination.pageSize === pagination.pageSize) return;
+  const handlePaginationChange = (newPagination: PaginationState) => {
+    // Validate page size is in allowed options
+    const validatedPageSize = pageSizeOptions.includes(newPagination.pageSize) 
+      ? newPagination.pageSize 
+      : pageSizeOptions[0];
     
-    onSearchChange({
-      pageIndex: newPagination.pageIndex === 0 ? undefined : newPagination.pageIndex,
-      pageSize: newPagination.pageSize === defaultPageSize ? undefined : newPagination.pageSize,
-      ...(sorting && { sorting }),
-    });
+    // Clamp page index to valid range
+    const maxPageIndex = Math.max(0, Math.ceil((data?.rowCount || 0) / validatedPageSize) - 1);
+    const validatedPageIndex = Math.min(Math.max(0, newPagination.pageIndex), maxPageIndex);
+    
+    const validatedPagination = {
+      pageIndex: validatedPageIndex,
+      pageSize: validatedPageSize,
+    };
+    
+    onPaginationChange(validatedPagination);
   };
 
-  const updateSorting = (newSorting: ColumnSort | undefined) => {
-    if (JSON.stringify(newSorting) === JSON.stringify(sorting)) return;
-    
-    onSearchChange({
-      pageIndex: pagination.pageIndex === 0 ? undefined : pagination.pageIndex,
-      pageSize: pagination.pageSize === defaultPageSize ? undefined : pagination.pageSize,
-      ...(newSorting && { sorting: newSorting }),
-    });
+  const handleColumnSortChange = (newColumnSort: ColumnSort) => {
+    onColumnSortChange(newColumnSort);
   };
 
   const { data, isLoading } = useQuery({
-    queryKey: [...queryKey, pagination.pageIndex, pagination.pageSize, sorting],
-    queryFn: async () => await fetcher(pagination, sorting),
+    queryKey: [...queryKey, pagination, columnSort],
+    queryFn: async () => await fetcher(pagination, columnSort),
   });
 
-  // Custom pagination change handler that updates search params
-  const handlePaginationChange = (updater: any) => {
+  // Custom pagination change handler for react-table
+  const handleTablePaginationChange = (updater: any) => {
     const newPagination = typeof updater === 'function' 
       ? updater(pagination) 
       : updater;
     
-    updateSearchParams(newPagination);  
+    handlePaginationChange(newPagination);  
   };
 
-  // Custom sorting change handler that updates search params
-  const handleSortingChange = (updater: any) => {
+  // Custom sorting change handler for react-table
+  const handleTableSortingChange = (updater: any) => {
     const newSorting = typeof updater === 'function' 
-      ? updater(sorting ? [sorting] : []) 
+      ? updater([columnSort]) 
       : updater;
     
-    // Convert array back to single sort or undefined
+    // Convert array back to single sort
     const singleSort = Array.isArray(newSorting) ? newSorting[0] : newSorting;
-    updateSorting(singleSort);
+    if (singleSort) {
+      handleColumnSortChange(singleSort);
+    }
   };
 
   const table = useReactTable({
@@ -149,11 +140,11 @@ export function DataTableProvider<T>({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     rowCount: data?.rowCount,
-    onPaginationChange: handlePaginationChange,
-    onSortingChange: handleSortingChange,
+    onPaginationChange: handleTablePaginationChange,
+    onSortingChange: handleTableSortingChange,
     state: {
       pagination,
-      sorting: sorting ? [sorting] : [],
+      sorting: [columnSort],
     },
     manualPagination: true,
     manualSorting: true,
@@ -164,11 +155,10 @@ export function DataTableProvider<T>({
     isLoading,
     table,
     pagination,
-    updateSearchParams,
-    sorting,
-    updateSorting,
+    onPaginationChange: handlePaginationChange,
+    columnSort,
+    onColumnSortChange: handleColumnSortChange,
     pageSizeOptions,
-    defaultPageSize,
     emptyMessage,
     sortableColumns,
   };
