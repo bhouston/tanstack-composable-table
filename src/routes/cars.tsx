@@ -5,12 +5,12 @@ import { createColumnHelper, PaginationState, ColumnSort } from "@tanstack/react
 import { createServerFn, useServerFn } from "@tanstack/react-start";
 import z from "zod/v4";
 import { FaCircle, FaTrash, FaTable, FaTh, FaCar } from "react-icons/fa";
-import { DataTable } from "../components/DataTable";
-import { DataTableResult } from "../components/DataTableContext";
-import { createReactStateHandlers } from "../components/DataTableHelpers";
-import { ListView } from "../components/ListView";
-import { BottomPaginator } from "../components/BottomPaginator";
-import { CardView } from "../components/CardView";
+import { DataTable } from "../components/dataTable/DataTable";
+import { DataTableResult } from "../components/dataTable/DataTableContext";
+import { createReactStateHandlers } from "../components/dataTable/DataTableHelpers";
+import { ListView } from "../components/dataTable/ListView";
+import { BottomPaginator } from "../components/dataTable/BottomPaginator";
+import { CardView } from "../components/dataTable/CardView";
 import { useQueryClient } from "@tanstack/react-query";
 
 type Car = {

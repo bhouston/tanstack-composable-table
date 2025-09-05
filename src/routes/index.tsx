@@ -5,16 +5,16 @@ import { createColumnHelper, PaginationState, ColumnSort } from "@tanstack/react
 import { createServerFn, useServerFn } from "@tanstack/react-start";
 import z from "zod/v4";
 import { FaCircle, FaTrash, FaTable, FaTh, FaSort } from "react-icons/fa";
-import { DataTable } from "../components/DataTable";
-import { DataTableResult } from "../components/DataTableContext";
+import { DataTable } from "../components/dataTable/DataTable";
+import { DataTableResult } from "../components/dataTable/DataTableContext";
 import { 
   searchParamsToPagination, 
   searchParamsToColumnSort, 
   createSearchParamHandlers 
-} from "../components/DataTableHelpers";
-import { ListView } from "../components/ListView";
-import { BottomPaginator } from "../components/BottomPaginator";
-import { CardView } from "../components/CardView";
+} from "../components/dataTable/DataTableHelpers";
+import { ListView } from "../components/dataTable/ListView";
+import { BottomPaginator } from "../components/dataTable/BottomPaginator";
+import { CardView } from "../components/dataTable/CardView";
 import { useQueryClient } from "@tanstack/react-query";
 
 type User = {
