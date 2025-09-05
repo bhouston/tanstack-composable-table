@@ -3,7 +3,7 @@ import { MdNavigateNext, MdNavigateBefore, MdLastPage, MdFirstPage } from 'react
 import { PaginationButton } from './PaginationButton';
 import { useDataTableContext } from './DataTableContext';
 
-export interface DataTablePaginationProps {
+export interface BottomPaginatorProps {
   className?: string;
   showPageSizeSelector?: boolean;
   showPageInput?: boolean;
@@ -11,13 +11,13 @@ export interface DataTablePaginationProps {
   layout?: 'centered' | 'left' | 'right' | 'spread';
 }
 
-export function DataTablePagination({
+export function BottomPaginator({
   className = '',
   showPageSizeSelector = true,
   showPageInput = true,
   showNavigationButtons = true,
   layout = 'spread',
-}: DataTablePaginationProps) {
+}: BottomPaginatorProps) {
   const { table, pagination, updateSearchParams, pageSizeOptions, defaultPageSize } = useDataTableContext();
   
   const [pageInput, setPageInput] = useState<string>((pagination.pageIndex + 1).toString());

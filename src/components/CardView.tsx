@@ -2,19 +2,19 @@ import React from 'react';
 import { useDataTableContext } from './DataTableContext';
 import { LoadingSpinner } from './LoadingSpinner';
 
-export interface DataTableCardRendererProps {
+export interface CardViewProps {
   className?: string;
   cardClassName?: string;
   emptyMessage?: string;
   renderCard: (row: any, index: number) => React.ReactNode;
 }
 
-export function DataTableCardRenderer({
+export function CardView({
   className = '',
   cardClassName = '',
   emptyMessage,
   renderCard,
-}: DataTableCardRendererProps) {
+}: CardViewProps) {
   const { table, isLoading, data, emptyMessage: contextEmptyMessage } = useDataTableContext();
   
   const finalEmptyMessage = emptyMessage || contextEmptyMessage;

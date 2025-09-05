@@ -7,9 +7,9 @@ import z from "zod/v4";
 import { FaCircle, FaTrash, FaTable, FaTh } from "react-icons/fa";
 import { DataTable } from "../components/DataTable";
 import { DataTableResult } from "../components/DataTableContext";
-import { DataTableRenderer } from "../components/DataTableRenderer";
-import { DataTablePagination } from "../components/DataTablePagination";
-import { DataTableCardRenderer } from "../components/DataTableCardRenderer";
+import { ListView } from "../components/ListView";
+import { BottomPaginator } from "../components/BottomPaginator";
+import { CardView } from "../components/CardView";
 import { useQueryClient } from "@tanstack/react-query";
 
 type User = {
@@ -179,12 +179,12 @@ const columns = [
           >
             {viewMode === 'table' ? (
               <>
-                <DataTableRenderer />
-                <DataTablePagination />
+                <ListView />
+                <BottomPaginator />
               </>
             ) : (
               <>
-                <DataTableCardRenderer
+                <CardView
                   className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6"
                   renderCard={(user: User) => (
                     <div className="space-y-3">
@@ -217,7 +217,7 @@ const columns = [
                     </div>
                   )}
                 />
-                <DataTablePagination layout="centered" />
+                <BottomPaginator layout="centered" />
               </>
             )}
           </DataTable>

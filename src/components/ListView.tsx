@@ -3,7 +3,7 @@ import { flexRender } from '@tanstack/react-table';
 import { useDataTableContext } from './DataTableContext';
 import { LoadingSpinner } from './LoadingSpinner';
 
-export interface DataTableRendererProps {
+export interface ListViewProps {
   className?: string;
   showHeader?: boolean;
   showFooter?: boolean;
@@ -12,14 +12,14 @@ export interface DataTableRendererProps {
   emptyMessage?: string;
 }
 
-export function DataTableRenderer({
+export function ListView({
   className = '',
   showHeader = true,
   showFooter = true,
   stripedRows = true,
   hoverableRows = true,
   emptyMessage,
-}: DataTableRendererProps) {
+}: ListViewProps) {
   const { table, isLoading, data, emptyMessage: contextEmptyMessage } = useDataTableContext();
   
   const finalEmptyMessage = emptyMessage || contextEmptyMessage;
