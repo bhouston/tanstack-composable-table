@@ -7,11 +7,7 @@ import z from "zod/v4";
 import { FaCircle, FaTrash, FaTable, FaTh, FaSort } from "react-icons/fa";
 import { DataTable } from "../components/dataTable/DataTable";
 import { DataTableResult } from "../components/dataTable/DataTableContext";
-import { 
-  searchParamsToPagination, 
-  searchParamsToColumnSort, 
-  createSearchParamHandlers 
-} from "../components/dataTable/DataTableHelpers";
+import { useDataTableURLState } from "../components/dataTable/DataTableState";
 import { ListView } from "../components/dataTable/ListView";
 import { BottomPaginator } from "../components/dataTable/BottomPaginator";
 import { CardView } from "../components/dataTable/CardView";
@@ -121,15 +117,14 @@ function Home() {
     return await getUsers({ data: { pagination, sorting } });
   };
 
-  // Convert search params to state
-  const pagination = searchParamsToPagination(search, 10);
-  const columnSort = searchParamsToColumnSort(search, { id: 'name', desc: false });
-  
-  // Create handlers for search parameter management
-  const { onPaginationChange, onColumnSortChange } = createSearchParamHandlers(
+  // URL-based state management
+  const { state, handlers } = useDataTableURLState(
+    search,
     navigate,
-    10,
-    { id: 'name', desc: false }
+    {
+      defaultPageSize: 10,
+      defaultSort: { id: 'name', desc: false }
+    }
   );
 
   const columnHelper = createColumnHelper<User>();
@@ -185,12 +180,12 @@ const columns = [
                     Sort:
                   </span>
                   <select
-                    value={columnSort.id}
+                    value={state.sorting.id}
                     onChange={(e) => {
                       const columnId = e.target.value;
-                      const isDesc = columnSort.id === columnId ? !columnSort.desc : false;
+                      const isDesc = state.sorting.id === columnId ? !state.sorting.desc : false;
                       
-                      onColumnSortChange({ id: columnId, desc: isDesc });
+                      handlers.onSortingChange({ id: columnId, desc: isDesc });
                     }}
                     className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
@@ -201,12 +196,12 @@ const columns = [
                   </select>
                   <button
                     onClick={() => {
-                      onColumnSortChange({ id: columnSort.id, desc: !columnSort.desc });
+                      handlers.onSortingChange({ id: state.sorting.id, desc: !state.sorting.desc });
                     }}
                     className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors duration-150"
                     title="Toggle sort direction"
                   >
-                    <FaSort className={`w-4 h-4 ${columnSort.desc ? 'rotate-180' : ''}`} />
+                    <FaSort className={`w-4 h-4 ${state.sorting.desc ? 'rotate-180' : ''}`} />
                   </button>
                 </div>
 
@@ -247,10 +242,10 @@ const columns = [
             queryKey={["users"]}
             fetcher={fetcher}
             columns={columns}
-            pagination={pagination}
-            onPaginationChange={onPaginationChange}
-            columnSort={columnSort}
-            onColumnSortChange={onColumnSortChange}
+            pagination={state.pagination}
+            onPaginationChange={handlers.onPaginationChange}
+            sorting={state.sorting}
+            onSortingChange={handlers.onSortingChange}
             emptyMessage="No users found"
           >
             {viewMode === 'table' ? (

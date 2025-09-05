@@ -12,7 +12,7 @@ export interface ListViewProps {
   emptyMessage?: string;
 }
 
-export function ListView({
+export function ListView<T = any>({
   className = '',
   showHeader = true,
   showFooter = true,
@@ -20,7 +20,7 @@ export function ListView({
   hoverableRows = true,
   emptyMessage,
 }: ListViewProps) {
-  const { table, isLoading, data, emptyMessage: contextEmptyMessage } = useDataTableContext();
+  const { table, isLoading, data, emptyMessage: contextEmptyMessage } = useDataTableContext<T>();
   
   const finalEmptyMessage = emptyMessage || contextEmptyMessage;
 

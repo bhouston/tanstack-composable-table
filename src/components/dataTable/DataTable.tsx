@@ -11,15 +11,14 @@ export interface DataTableProps<T> {
   // Table configuration
   columns: ColumnDef<T, any>[];
   
-  // Explicit state management
+  // State management
   pagination: PaginationState;
   onPaginationChange: (pagination: PaginationState) => void;
-  columnSort: ColumnSort;
-  onColumnSortChange: (columnSort: ColumnSort) => void;
+  sorting: ColumnSort;
+  onSortingChange: (sorting: ColumnSort) => void;
   
   // Optional props
   emptyMessage?: string;
-  pageSizeOptions?: number[];
   className?: string;
   
   // Required children for composition
@@ -32,10 +31,9 @@ export function DataTable<T>({
   columns,
   pagination,
   onPaginationChange,
-  columnSort,
-  onColumnSortChange,
+  sorting,
+  onSortingChange,
   emptyMessage = 'No data found',
-  pageSizeOptions = [10, 20, 30, 40, 50],
   className = '',
   children,
 }: DataTableProps<T>) {
@@ -46,9 +44,8 @@ export function DataTable<T>({
       columns={columns}
       pagination={pagination}
       onPaginationChange={onPaginationChange}
-      columnSort={columnSort}
-      onColumnSortChange={onColumnSortChange}
-      pageSizeOptions={pageSizeOptions}
+      sorting={sorting}
+      onSortingChange={onSortingChange}
       emptyMessage={emptyMessage}
     >
       <div className={className}>

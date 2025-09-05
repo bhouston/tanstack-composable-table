@@ -9,6 +9,7 @@ export interface BottomPaginatorProps {
   showPageInput?: boolean;
   showNavigationButtons?: boolean;
   layout?: 'centered' | 'left' | 'right' | 'spread';
+  pageSizeOptions?: number[];
 }
 
 export function BottomPaginator({
@@ -17,30 +18,29 @@ export function BottomPaginator({
   showPageInput = true,
   showNavigationButtons = true,
   layout = 'spread',
+  pageSizeOptions = [10, 20, 30, 40, 50],
 }: BottomPaginatorProps) {
-  const { table, pagination, onPaginationChange, pageSizeOptions } = useDataTableContext();
+  const { table } = useDataTableContext();
   
-  const [pageInput, setPageInput] = useState<string>((pagination.pageIndex + 1).toString());
+  const [pageInput, setPageInput] = useState<string>((table.getState().pagination.pageIndex + 1).toString());
   const [isPageInputValid, setIsPageInputValid] = useState<boolean>(true);
 
-  // Update page input when pagination changes from URL
+  // Update page input when pagination changes
   useEffect(() => {
-    setPageInput((pagination.pageIndex + 1).toString());
-  }, [pagination.pageIndex]);
+    setPageInput((table.getState().pagination.pageIndex + 1).toString());
+  }, [table.getState().pagination.pageIndex]);
 
   const handlePageInputChange = (value: string) => {
-    // Only allow numbers
     const numericValue = value.replace(/[^0-9]/g, '');
     setPageInput(numericValue);
     
     if (numericValue === '') {
-      setIsPageInputValid(true); // Allow empty input while typing
+      setIsPageInputValid(true);
       return;
     }
     
     const pageNumber = parseInt(numericValue, 10);
     const maxPages = table.getPageCount();
-    
     setIsPageInputValid(pageNumber >= 1 && pageNumber <= maxPages);
   };
 
@@ -49,8 +49,7 @@ export function BottomPaginator({
     
     const pageNumber = parseInt(pageInput, 10);
     const targetPageIndex = pageNumber - 1;
-
-    onPaginationChange({ pageIndex: targetPageIndex, pageSize: pagination.pageSize });
+    table.setPageIndex(targetPageIndex);
   };
 
   const handlePageInputKeyPress = (e: React.KeyboardEvent) => {
@@ -65,14 +64,14 @@ export function BottomPaginator({
     return (
       <div className="flex items-center space-x-2">
         <PaginationButton
-          onClick={() => onPaginationChange({ pageIndex: 0, pageSize: pagination.pageSize })}
+          onClick={() => table.setPageIndex(0)}
           disabled={!table.getCanPreviousPage()}
           title="First page"
         >
           <MdFirstPage className="w-4 h-4" />
         </PaginationButton>
         <PaginationButton
-          onClick={() => onPaginationChange({ pageIndex: pagination.pageIndex - 1, pageSize: pagination.pageSize })}
+          onClick={() => table.previousPage()}
           disabled={!table.getCanPreviousPage()}
           title="Previous page"
         >
@@ -114,14 +113,14 @@ export function BottomPaginator({
     return (
       <div className="flex items-center space-x-2">
         <PaginationButton
-          onClick={() => onPaginationChange({ pageIndex: pagination.pageIndex + 1, pageSize: pagination.pageSize })}
+          onClick={() => table.nextPage()}
           disabled={!table.getCanNextPage()}
           title="Next page"
         >
           <MdNavigateNext className="w-4 h-4" />
         </PaginationButton>
         <PaginationButton
-          onClick={() => onPaginationChange({ pageIndex: table.getPageCount() - 1, pageSize: pagination.pageSize })}
+          onClick={() => table.setPageIndex(table.getPageCount() - 1)}
           disabled={!table.getCanNextPage()}
           title="Last page"
         >
@@ -144,10 +143,7 @@ export function BottomPaginator({
           value={table.getState().pagination.pageSize}
           onChange={e => {
             const newPageSize = Number(e.target.value);
-            onPaginationChange({
-              pageSize: newPageSize,
-              pageIndex: Math.floor((pagination.pageIndex * pagination.pageSize) / newPageSize),
-            });
+            table.setPageSize(newPageSize);
           }}
           className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-150"
         >
@@ -163,15 +159,11 @@ export function BottomPaginator({
 
   const getLayoutClasses = () => {
     switch (layout) {
-      case 'centered':
-        return 'justify-center';
-      case 'left':
-        return 'justify-start';
-      case 'right':
-        return 'justify-end';
+      case 'centered': return 'justify-center';
+      case 'left': return 'justify-start';
+      case 'right': return 'justify-end';
       case 'spread':
-      default:
-        return 'justify-between';
+      default: return 'justify-between';
     }
   };
 

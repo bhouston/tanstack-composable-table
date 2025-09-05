@@ -7,7 +7,7 @@ import z from "zod/v4";
 import { FaCircle, FaTrash, FaTable, FaTh, FaCar } from "react-icons/fa";
 import { DataTable } from "../components/dataTable/DataTable";
 import { DataTableResult } from "../components/dataTable/DataTableContext";
-import { createReactStateHandlers } from "../components/dataTable/DataTableHelpers";
+import { useDataTableState } from "../components/dataTable/DataTableState";
 import { ListView } from "../components/dataTable/ListView";
 import { BottomPaginator } from "../components/dataTable/BottomPaginator";
 import { CardView } from "../components/dataTable/CardView";
@@ -137,9 +137,11 @@ function CarsPage() {
   // View toggle state
   const [viewMode, setViewMode] = React.useState<'table' | 'cards'>('table');
   
-  // DataTable state using React useState
-  const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 12 });
-  const [columnSort, setColumnSort] = React.useState<ColumnSort>({ id: 'make', desc: false });
+  // Simplified state management
+  const { state, handlers } = useDataTableState({
+    defaultPageSize: 12,
+    defaultSort: { id: 'make', desc: false }
+  });
   
   const fetcher = async (
     pagination: PaginationState,
@@ -147,12 +149,6 @@ function CarsPage() {
   ): Promise<GenerateCarsResult> => {
     return await getCars({ data: { pagination, sorting } });
   };
-
-  // Create handlers for React state management
-  const { onPaginationChange, onColumnSortChange } = createReactStateHandlers(
-    setPagination,
-    setColumnSort
-  );
 
   const columnHelper = createColumnHelper<Car>();
 
@@ -249,10 +245,10 @@ function CarsPage() {
             queryKey={["cars"]}
             fetcher={fetcher}
             columns={columns}
-            pagination={pagination}
-            onPaginationChange={onPaginationChange}
-            columnSort={columnSort}
-            onColumnSortChange={onColumnSortChange}
+            pagination={state.pagination}
+            onPaginationChange={handlers.onPaginationChange}
+            sorting={state.sorting}
+            onSortingChange={handlers.onSortingChange}
             emptyMessage="No cars found"
           >
             {viewMode === 'table' ? (
